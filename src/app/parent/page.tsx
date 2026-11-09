@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { CalendarDays, CheckCircle2, GraduationCap, Loader2, LogOut, MessageCircle, Wallet } from 'lucide-react'
+import { ArrowUpRight, BookOpen as BookOpenIcon, CalendarDays, CheckCircle2, GraduationCap, Loader2, LogOut, MessageCircle, Wallet } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { useLogout } from '@/hooks/useAuth'
 import { rtdb } from '@/lib/database'
@@ -179,24 +179,33 @@ export default function ParentPortalPage() {
 
   return (
     <div className="mms-dashboard space-y-6">
-      <header className="flex flex-wrap items-center justify-between gap-4">
-        <div><p className="text-sm font-semibold tracking-[0.2em] text-cyan-300">MMS1 FAMILY</p><h1 className="mt-1 text-3xl font-bold tracking-tight text-white">Parent Portal</h1><p className="mt-1 text-slate-400">Welcome, {user?.name}. Keep up with your children’s learning.</p></div>
-        <Button type="button" variant="outline" onClick={handleLogout} className="border-white/15 text-slate-300"><LogOut className="mr-2 h-4 w-4" />Sign out</Button>
+      <header className="flex items-center justify-between gap-3">
+        <div><p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-300">MMS1 · Family</p><h1 className="mt-1 text-2xl font-bold tracking-tight text-white sm:text-3xl">Parent Portal</h1><p className="mt-1 text-sm text-slate-400">Welcome, {user?.name}. Keep up with your children’s learning.</p></div>
+        <Button type="button" variant="outline" aria-label="Sign out" onClick={handleLogout} className="h-11 w-11 shrink-0 border-white/15 p-0 text-slate-300 sm:h-auto sm:w-auto sm:px-4"><LogOut className="h-4 w-4 sm:mr-2" /><span className="hidden sm:inline">Sign out</span></Button>
       </header>
       {error && <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}
       {notice && <Alert variant="success"><AlertDescription>{notice}</AlertDescription></Alert>}
       {!children.length ? (
         <Card className="border-amber-300/20 bg-[#0c1421]"><CardHeader><CardTitle className="text-white">No students linked yet</CardTitle><CardDescription>Please contact the Madrasah administrator. Your account email must match the parent email on each student’s record.</CardDescription></CardHeader></Card>
       ) : <>
-        <div className="flex flex-wrap items-end justify-between gap-4 rounded-2xl border border-white/10 bg-[#0c1421] p-4">
-          <div className="space-y-2"><Label htmlFor="child-switcher">Viewing child</Label><select id="child-switcher" value={selectedId} onChange={(e) => setSelectedId(e.target.value)} className="h-11 min-w-64 rounded-lg border border-white/10 bg-[#080f1b] px-3 text-sm text-slate-100">{children.map((child) => <option key={child.id} value={child.id}>{child.name}{child.className ? ` · ${child.className}` : ''}</option>)}</select></div>
-          <div className="flex items-center gap-2 text-sm text-slate-400"><GraduationCap className="h-4 w-4 text-cyan-300" />{childData.classInfo?.name || selectedChild?.className || 'Class pending'}{childData.classInfo?.section ? ` · ${childData.classInfo.section}` : ''}</div>
+        <div className="flex flex-col gap-3 rounded-2xl border border-cyan-300/20 bg-[#0c1421] p-4 shadow-[0_0_24px_rgba(34,211,238,0.06)] sm:flex-row sm:items-end sm:justify-between">
+          <div className="min-w-0 flex-1 space-y-2"><Label htmlFor="child-switcher">Viewing child</Label><select id="child-switcher" value={selectedId} onChange={(e) => setSelectedId(e.target.value)} className="h-11 w-full rounded-xl border border-white/10 bg-[#080f1b] px-3 text-sm text-slate-100 sm:max-w-sm">{children.map((child) => <option key={child.id} value={child.id}>{child.name}{child.className ? ` · ${child.className}` : ''}</option>)}</select></div>
+          <div className="flex items-center gap-2 text-sm text-slate-400"><GraduationCap className="h-4 w-4 shrink-0 text-cyan-300" />{childData.classInfo?.name || selectedChild?.className || 'Class pending'}{childData.classInfo?.section ? ` · ${childData.classInfo.section}` : ''}</div>
         </div>
         {loadingData ? <div className="flex h-48 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-cyan-300" /></div> : <>
-          <section className="grid gap-4 md:grid-cols-3">
-            <Card className="border-cyan-300/20 bg-[#0c1421]"><CardHeader className="pb-2"><CardDescription>Today’s attendance</CardDescription><CardTitle className="text-2xl capitalize text-white">{todayAttendance?.status || 'Not recorded'}</CardTitle></CardHeader><CardContent><p className="text-xs text-slate-500">{todayAttendance?.note || todayAttendance?.excuseNote || (todayAttendance ? todayAttendance.date : `Attendance for ${today} has not been posted.`)}</p></CardContent></Card>
-            <Card className="border-violet-300/20 bg-[#0c1421]"><CardHeader className="pb-2"><CardDescription>Today’s mutaba’ah</CardDescription><CardTitle className="text-lg text-white">{todayLog ? todayLog.evaluation === 'practice' ? 'Needs home revision' : todayLog.evaluation === 'excellent' ? 'Passed · Excellent' : 'Passed · Good' : 'No lesson update yet'}</CardTitle></CardHeader><CardContent><p className="text-xs text-slate-400">{todayLog ? `${todayLog.surah || todayLog.lessonType}${todayLog.ayahRange ? ` · Ayah ${todayLog.ayahRange}` : ''}` : `No daily log for ${today}.`}</p></CardContent></Card>
-            <Card className="border-amber-300/20 bg-[#0c1421]"><CardHeader className="pb-2"><CardDescription>Fee balance</CardDescription><CardTitle className={`text-2xl ${balanceDue > 0 ? 'text-amber-200' : 'text-emerald-300'}`}>{balanceDue.toLocaleString()}</CardTitle></CardHeader><CardContent><p className="text-xs text-slate-400">Paid {balances.paid.toLocaleString()} of {balances.billed.toLocaleString()}</p></CardContent></Card>
+          <section aria-label="Child overview" className="mms-stat-panel">
+            <div className="mms-stat-cell"><span className="mms-stat-icon text-cyan-200"><CalendarDays className="h-4 w-4" /></span><span className="min-w-0 flex-1"><span className="block truncate text-xs text-slate-400">Today’s attendance</span><span className="block truncate text-base font-semibold capitalize text-white">{todayAttendance?.status || 'Not recorded'}</span></span><ArrowUpRight className="h-4 w-4 text-slate-500" /></div>
+            <div className="mms-stat-cell"><span className="mms-stat-icon text-violet-200"><BookOpenIcon className="h-4 w-4" /></span><span className="min-w-0 flex-1"><span className="block truncate text-xs text-slate-400">Daily Mutaba’ah</span><span className="block truncate text-base font-semibold text-violet-100">{todayLog ? todayLog.evaluation === 'practice' ? 'Needs revision' : 'Lesson shared' : 'No update yet'}</span></span><ArrowUpRight className="h-4 w-4 text-slate-500" /></div>
+            <div className="mms-stat-cell"><span className="mms-stat-icon text-amber-200"><Wallet className="h-4 w-4" /></span><span className="min-w-0 flex-1"><span className="block truncate text-xs text-slate-400">Fee balance</span><span className={`block truncate text-base font-semibold ${balanceDue > 0 ? 'text-amber-200' : 'text-emerald-300'}`}>{balanceDue.toLocaleString()}</span></span><ArrowUpRight className="h-4 w-4 text-slate-500" /></div>
+            <div className="mms-stat-cell"><span className="mms-stat-icon text-cyan-200"><GraduationCap className="h-4 w-4" /></span><span className="min-w-0 flex-1"><span className="block truncate text-xs text-slate-400">Class</span><span className="block truncate text-base font-semibold text-white">{childData.classInfo?.name || selectedChild?.className || 'Pending'}</span></span><ArrowUpRight className="h-4 w-4 text-slate-500" /></div>
+          </section>
+          <section aria-label="Parent shortcuts">
+            <div className="mb-3 flex items-center justify-between"><h2 className="text-sm font-semibold text-slate-200">Quick access</h2><span className="text-xs text-slate-500">For your child</span></div>
+            <div className="mms-dashboard-actions">
+              <a href="#communication-book" className="mms-quick-link" data-accent="cyan"><span className="mms-quick-icon"><BookOpenIcon /></span><span>Daily book</span></a>
+              <a href="#fee-history" className="mms-quick-link" data-accent="yellow"><span className="mms-quick-icon"><Wallet /></span><span>Fee history</span></a>
+              <a href="#leave-request" className="mms-quick-link" data-accent="violet"><span className="mms-quick-icon"><CalendarDays /></span><span>Request leave</span></a>
+            </div>
           </section>
           <section className="grid gap-4 lg:grid-cols-2">
             <Card className="border-white/10 bg-[#0c1421]">
@@ -208,11 +217,11 @@ export default function ParentPortalPage() {
               <CardContent>{childData.exams.length ? <div className="space-y-3">{childData.exams.slice(0, 5).map((exam) => <div key={exam.id} className="flex items-center justify-between gap-3 border-b border-white/10 pb-3 last:border-0"><div><p className="font-medium text-slate-100">{exam.title}</p><p className="text-xs text-slate-500">{exam.type} · {exam.academicYear || 'Academic year not set'}</p></div><p className="text-right font-semibold text-violet-200">{exam.row.percentage.toFixed(1)}%<span className="block text-xs font-normal text-slate-500">{exam.row.total} points</span></p></div>)}</div> : <p className="text-sm text-slate-400">No exam results have been published for this child.</p>}</CardContent>
             </Card>
           </section>
-          <Card className="border-white/10 bg-[#0c1421]">
+          <Card id="fee-history" className="scroll-mt-24 border-white/10 bg-[#0c1421]">
             <CardHeader><CardTitle className="flex items-center gap-2 text-white"><Wallet className="h-5 w-5 text-amber-200" />Fee & payment history</CardTitle><CardDescription>Charges and payments for this child.</CardDescription></CardHeader>
             <CardContent>{childData.fees.length ? <div className="overflow-x-auto"><table className="w-full min-w-[500px] text-left text-sm"><thead className="text-slate-400"><tr><th className="p-3">Date</th><th className="p-3">Description</th><th className="p-3">Type</th><th className="p-3 text-right">Amount</th></tr></thead><tbody>{childData.fees.map((fee) => <tr key={fee.id} className="border-t border-white/10"><td className="p-3">{fee.date}</td><td className="p-3">{fee.description}</td><td className="p-3 capitalize">{fee.kind}</td><td className={`p-3 text-right font-medium ${fee.kind === 'payment' ? 'text-emerald-300' : 'text-amber-200'}`}>{fee.kind === 'payment' ? '−' : ''}{fee.amount.toLocaleString()}</td></tr>)}</tbody></table></div> : <p className="text-sm text-slate-400">No fee records have been added.</p>}</CardContent>
           </Card>
-          <Card className="border-white/10 bg-[#0c1421]">
+          <Card id="communication-book" className="scroll-mt-24 border-white/10 bg-[#0c1421]">
             <CardHeader><CardTitle className="text-white">Digital communication book</CardTitle><CardDescription>Read the daily update, sign after home revision, and reply to the Ustaz.</CardDescription></CardHeader>
             <CardContent className="space-y-4">{childData.logs.length ? childData.logs.slice(0, 25).map((log) => { const replies = Object.values(log.replies || {}).sort((a, b) => a.createdAt.localeCompare(b.createdAt)); return <article key={log.id} className="rounded-xl border border-white/10 bg-[#080f1b] p-4"><div className="flex flex-wrap items-start justify-between gap-2"><div><h3 className="font-semibold text-white">{log.date} · {log.lessonType}</h3><p className="mt-1 text-sm text-slate-400">{log.surah ? `${log.surah}${log.ayahRange ? ` · Ayah ${log.ayahRange}` : ''}` : ''}{log.pageOrLesson ? ` · Page/lesson ${log.pageOrLesson}` : ''}</p></div>{log.acknowledgement ? <span className="inline-flex items-center gap-1 text-xs text-emerald-200"><CheckCircle2 className="h-4 w-4" />Seen {new Date(log.acknowledgement.acknowledgedAt).toLocaleString()}</span> : <Button type="button" size="sm" onClick={() => void signLog(log)} className="bg-cyan-400 text-slate-950 hover:bg-cyan-300">Seen & revised at home</Button>}</div>
                 <p className="mt-2 text-sm text-slate-300">Evaluation: <span className="capitalize text-cyan-100">{log.evaluation}</span></p>{log.juz && <p className="mt-1 text-sm text-slate-400">{log.juz}</p>}
@@ -221,7 +230,7 @@ export default function ParentPortalPage() {
                 <div className="mt-3 space-y-2"><Input value={replyDrafts[log.id] || ''} onChange={(e) => setReplyDrafts((drafts) => ({ ...drafts, [log.id]: e.target.value }))} placeholder="Send a short message to the Ustaz" /><VoiceNoteRecorder value={replyVoices[log.id] || ''} onChange={(value) => setReplyVoices((voices) => ({ ...voices, [log.id]: value }))} /><Button type="button" size="sm" variant="outline" disabled={sendingReply === log.id || (!(replyDrafts[log.id] || '').trim() && !replyVoices[log.id])} onClick={() => void sendReply(log)}><MessageCircle className="mr-2 h-4 w-4" />{sendingReply === log.id ? 'Sending…' : 'Reply'}</Button></div>
               </article>}) : <p className="text-sm text-slate-400">No daily notes yet. Check back after your child’s next lesson.</p>}</CardContent>
           </Card>
-          <Card className="border-white/10 bg-[#0c1421]">
+          <Card id="leave-request" className="scroll-mt-24 border-white/10 bg-[#0c1421]">
             <CardHeader><CardTitle className="flex items-center gap-2 text-white"><CalendarDays className="h-5 w-5 text-cyan-300" />Request leave / report an absence</CardTitle><CardDescription>Notify the class Ustaz and administration about an upcoming or current absence.</CardDescription></CardHeader>
             <CardContent><form onSubmit={submitLeave} className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2"><Label htmlFor="leave-date">Date</Label><Input id="leave-date" type="date" value={leaveDate} onChange={(e) => setLeaveDate(e.target.value)} required /></div>

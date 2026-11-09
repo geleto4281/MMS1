@@ -1,11 +1,12 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import Link from 'next/link'
 import { rtdb } from '@/lib/database'
 import { useAuth } from '@/context/AuthContext'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Loader2, UserX, Phone, Calendar, Users, Search, UserCheck } from 'lucide-react'
+import { ArrowUpRight, BookOpen, ClipboardCheck, GraduationCap, Loader2, UserX, Phone, Calendar, Users, Search, UserCheck } from 'lucide-react'
 import type { Student, Class, Attendance } from '@/types'
 
 export default function TeacherPage() {
@@ -120,8 +121,9 @@ export default function TeacherPage() {
   return (
     <div className="mms-dashboard space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Teacher Dashboard</h1>
-        <p className="text-gray-500 mt-1">Absent students in your classes, ready to contact</p>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-300">MMS1 · Teacher</p>
+        <h1 className="mt-1 text-2xl font-bold tracking-tight text-white sm:text-3xl">Dashboard</h1>
+        <p className="mt-1 text-sm text-slate-400">As-salamu alaykum{user?.name ? `, ${user.name}` : ''}. Here&apos;s your class overview.</p>
       </div>
 
       {error && (
@@ -130,36 +132,42 @@ export default function TeacherPage() {
         </Alert>
       )}
 
-      {/* KPI cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Card className="border-0 shadow-md">
-          <div className="bg-gradient-to-br from-green-600 to-green-700 p-5">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-white/90">Total Students</span>
-              <div className="rounded-lg bg-white/20 p-2"><Users className="h-5 w-5 text-white" /></div>
-            </div>
-            <p className="mt-3 text-4xl font-extrabold text-white">{totalStudents}</p>
-          </div>
-        </Card>
-        <Card className="border-0 shadow-md">
-          <div className="bg-gradient-to-br from-rose-600 to-red-800 p-5">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-white/90">Absent Today</span>
-              <div className="rounded-lg bg-white/20 p-2"><UserX className="h-5 w-5 text-white" /></div>
-            </div>
-            <p className="mt-3 text-4xl font-extrabold text-white">{absentToday}</p>
-          </div>
-        </Card>
-        <Card className="border-0 shadow-md">
-          <div className="bg-gradient-to-br from-emerald-600 to-teal-700 p-5">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-white/90">Present Today</span>
-              <div className="rounded-lg bg-white/20 p-2"><UserCheck className="h-5 w-5 text-white" /></div>
-            </div>
-            <p className="mt-3 text-4xl font-extrabold text-white">{presentToday}</p>
-          </div>
-        </Card>
-      </div>
+      <section aria-label="Class overview" className="mms-stat-panel">
+        <div className="mms-stat-cell">
+          <span className="mms-stat-icon text-cyan-200"><Users className="h-4 w-4" /></span>
+          <span className="min-w-0 flex-1"><span className="block truncate text-xs text-slate-400">Students</span><span className="block text-2xl font-bold text-white">{totalStudents}</span></span>
+          <ArrowUpRight className="h-4 w-4 text-slate-500" />
+        </div>
+        <div className="mms-stat-cell">
+          <span className="mms-stat-icon text-violet-200"><UserX className="h-4 w-4" /></span>
+          <span className="min-w-0 flex-1"><span className="block truncate text-xs text-slate-400">Absent today</span><span className="block text-2xl font-bold text-violet-200">{absentToday}</span></span>
+          <ArrowUpRight className="h-4 w-4 text-slate-500" />
+        </div>
+        <div className="mms-stat-cell">
+          <span className="mms-stat-icon text-cyan-200"><UserCheck className="h-4 w-4" /></span>
+          <span className="min-w-0 flex-1"><span className="block truncate text-xs text-slate-400">Present today</span><span className="block text-2xl font-bold text-cyan-100">{presentToday}</span></span>
+          <ArrowUpRight className="h-4 w-4 text-slate-500" />
+        </div>
+        <div className="mms-stat-cell">
+          <span className="mms-stat-icon text-amber-200"><GraduationCap className="h-4 w-4" /></span>
+          <span className="min-w-0 flex-1"><span className="block truncate text-xs text-slate-400">My classes</span><span className="block text-2xl font-bold text-amber-100">{classes.length}</span></span>
+          <ArrowUpRight className="h-4 w-4 text-slate-500" />
+        </div>
+      </section>
+      <section aria-label="Quick actions">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-slate-200">Quick access</h2>
+          <span className="text-xs text-slate-500">Teaching tools</span>
+        </div>
+        <div className="mms-dashboard-actions">
+          <Link href="/teacher/students" className="mms-quick-link" data-accent="cyan"><span className="mms-quick-icon"><Users /></span><span>Students</span></Link>
+          <Link href="/teacher/attendance" className="mms-quick-link" data-accent="cyan"><span className="mms-quick-icon"><ClipboardCheck /></span><span>Attendance</span></Link>
+          <Link href="/teacher/mutabaah" className="mms-quick-link" data-accent="yellow"><span className="mms-quick-icon"><BookOpen /></span><span>Daily Mutaba’ah</span></Link>
+          <Link href="/teacher/classes" className="mms-quick-link" data-accent="violet"><span className="mms-quick-icon"><GraduationCap /></span><span>My classes</span></Link>
+          <Link href="/teacher/exams" className="mms-quick-link" data-accent="cyan"><span className="mms-quick-icon"><BookOpen /></span><span>Exams & results</span></Link>
+          <Link href="/teacher/history" className="mms-quick-link" data-accent="yellow"><span className="mms-quick-icon"><Calendar /></span><span>History</span></Link>
+        </div>
+      </section>
 
       <Card className="border-0 shadow-md bg-gradient-to-br from-rose-50 to-rose-100/70">
         <CardHeader className="space-y-3">
@@ -293,20 +301,6 @@ export default function TeacherPage() {
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="pt-6 flex items-center gap-3">
-            <span className="inline-flex items-center justify-center rounded-lg bg-green-100 p-2">
-              <Users className="h-5 w-5 text-green-600" />
-            </span>
-            <div>
-              <p className="text-sm text-gray-500">My Classes</p>
-              <p className="text-2xl font-bold text-gray-900">{classes.length}</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
     </div>
   )
 }
-

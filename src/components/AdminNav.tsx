@@ -21,6 +21,7 @@ import { useLogout } from '@/hooks/useAuth'
 import { AbsenceAlertBell } from '@/components/AbsenceAlertBell'
 import { AttendanceReminderBell } from '@/components/AttendanceReminderBell'
 import { AnnouncementBell } from '@/components/AnnouncementBell'
+import { MobileBottomNav } from '@/components/MobileBottomNav'
 
 export function AdminNav() {
   const pathname = usePathname()
@@ -100,33 +101,14 @@ export function AdminNav() {
           </div>
         </div>
 
-        <div className="lg:hidden pb-3">
-          <div className="flex flex-wrap gap-2">
-            {links.map((link) => {
-              const Icon = link.icon
-              const isActive =
-                pathname === link.href ||
-                (link.href !== '/dashboard' && pathname.startsWith(link.href))
-
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={cn(
-                    'flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200',
-                    isActive
-                      ? 'bg-cyan-300/10 text-cyan-200 shadow-[inset_0_0_0_1px_rgba(103,232,249,0.35)]'
-                      : 'text-slate-400 hover:bg-white/5 hover:text-white'
-                  )}
-                >
-                  <Icon className="h-4 w-4" />
-                  <span>{link.label}</span>
-                </Link>
-              )
-            })}
-          </div>
-        </div>
       </div>
+      <MobileBottomNav items={[
+        { href: '/admin', label: 'Home', icon: LayoutDashboard },
+        { href: '/admin/students', label: 'Students', icon: Users },
+        { href: '/admin/attendance', label: 'Attendance', icon: ClipboardList },
+        { href: '/admin/fees', label: 'Fees', icon: Wallet },
+        { href: '/admin/classes', label: 'Classes', icon: GraduationCap },
+      ]} />
     </nav>
   )
 }

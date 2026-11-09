@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import Link from 'next/link'
 import { rtdb } from '@/lib/database'
 import { useLiveData } from '@/lib/dataStore'
 import { daysAgoISO, ATTENDANCE_RECENT_DAYS } from '@/lib/utils'
@@ -20,6 +21,11 @@ import {
   Trash2,
   Copy,
   MessageSquare,
+  BookOpen,
+  Wallet,
+  ClipboardCheck,
+  ArrowUpRight,
+  Settings,
 } from 'lucide-react'
 import {
   ResponsiveContainer,
@@ -444,19 +450,22 @@ if (loading) {
 
   return (
     <div className="mms-dashboard space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div className="flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-white">MMS1 Dashboard</h1>
-          <p className="mt-1 text-slate-400">Your school at a glance</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-300">MMS1 · Administration</p>
+          <h1 className="mt-1 text-2xl font-bold tracking-tight text-white sm:text-3xl">Dashboard</h1>
+          <p className="mt-1 text-sm text-slate-400">Your school at a glance</p>
         </div>
-        <div className="inline-flex items-center gap-3 self-start rounded-xl border border-white/10 bg-[#0c1421] px-4 py-2.5 text-sm font-medium text-slate-300 shadow-sm md:self-auto">
-          <Calendar className="h-4 w-4 text-cyan-300" />
+        <div className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-yellow-300/30 bg-yellow-300/10 text-yellow-200 shadow-[0_0_22px_rgba(250,204,21,0.08)] sm:h-auto sm:w-auto sm:gap-3 sm:rounded-xl sm:px-4 sm:py-2.5 sm:text-sm sm:font-medium sm:text-slate-300">
+          <Calendar className="h-5 w-5 sm:h-4 sm:w-4" />
+          <span className="hidden sm:inline">
           {new Date().toLocaleDateString(undefined, {
             weekday: 'long',
             year: 'numeric',
             month: 'long',
             day: 'numeric',
           })}
+          </span>
         </div>
       </div>
 
@@ -467,100 +476,55 @@ if (loading) {
       )}
 
 
-      {/* KPI cards - click to show the matching list right below (no redirect) */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
-        <button type="button" className="block w-full text-left" onClick={() => showStudents('all')}>
-          <div className="group relative rounded-xl shadow-md transition hover:shadow-xl cursor-pointer overflow-hidden ring-0">
-            <div className={`${activeSection === 'students' && studentGenderFilter === 'all' ? 'ring-2 ring-cyan-300' : ''} bg-gradient-to-br from-cyan-500 to-blue-700 p-5 active:bg-none active:bg-transparent`}>
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-white/90">Total Students</span>
-                <div className="rounded-lg bg-white/20 p-2"><Users className="h-5 w-5 text-white" /></div>
-              </div>
-              <p className="mt-3 text-4xl font-extrabold text-white">{data.totalStudents}</p>
-            </div>
-            {/* Hover: gender breakdown */}
-            <div className="pointer-events-none absolute left-1/2 top-full z-30 mt-2 w-56 -translate-x-1/2 rounded-xl bg-gray-900 px-4 py-3 text-white shadow-2xl opacity-0 transition-opacity group-hover:opacity-100">
-              <p className="text-xs font-medium text-gray-400">Total Students · Gender</p>
-              <div className="mt-2 space-y-1.5 text-sm">
-                <div className="flex items-center justify-between">
-                  <span className="inline-flex items-center gap-2">
-                    <span className="h-2.5 w-2.5 rounded-full bg-blue-400" /> Boys
-                  </span>
-                  <span className="font-bold">{data.maleStudents}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="inline-flex items-center gap-2">
-                    <span className="h-2.5 w-2.5 rounded-full bg-pink-400" /> Girls
-                  </span>
-                  <span className="font-bold">{data.femaleStudents}</span>
-                </div>
-                <div className="my-1 border-t border-white/10" />
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-300">Unspecified</span>
-                  <span className="font-bold">{data.totalStudents - data.maleStudents - data.femaleStudents}</span>
-                </div>
-              </div>
-            </div>
-          </div>
+      <section aria-label="School overview" className="mms-stat-panel">
+        <button type="button" className="mms-stat-cell text-left" onClick={() => showStudents('all')}>
+          <span className="mms-stat-icon text-cyan-200"><Users className="h-4 w-4" /></span>
+          <span className="min-w-0 flex-1"><span className="block truncate text-xs text-slate-400">Students</span><span className="block text-2xl font-bold text-white">{data.totalStudents.toLocaleString()}</span></span>
+          <ArrowUpRight className="h-4 w-4 text-slate-500" />
         </button>
-        <button type="button" className="block w-full text-left" onClick={() => showStudents('male')}>
-          <div className={`rounded-xl shadow-md transition hover:shadow-xl cursor-pointer overflow-hidden ring-0 ${studentGenderFilter === 'male' ? 'ring-4 ring-blue-300' : ''}`}>
-            <div className="bg-gradient-to-br from-violet-500 to-purple-800 p-5 active:bg-none active:bg-transparent">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-white/90">Male Students</span>
-                <div className="rounded-lg bg-white/20 p-2"><User className="h-5 w-5 text-white" /></div>
-              </div>
-              <p className="mt-3 text-4xl font-extrabold text-white">{data.maleStudents}</p>
-              <p className="mt-1 text-xs font-medium text-white/70">{malePct}% of total students</p>
-            </div>
-          </div>
+        <button type="button" className="mms-stat-cell text-left" onClick={handleShowTodayAbsent}>
+          <span className="mms-stat-icon text-violet-200"><ClipboardCheck className="h-4 w-4" /></span>
+          <span className="min-w-0 flex-1"><span className="block truncate text-xs text-slate-400">Absent today</span><span className="block text-2xl font-bold text-violet-200">{data.todayAbsentCount}</span></span>
+          <ArrowUpRight className="h-4 w-4 text-slate-500" />
         </button>
-        <button type="button" className="block w-full text-left" onClick={() => showStudents('female')}>
-          <div className={`rounded-xl shadow-md transition hover:shadow-xl cursor-pointer overflow-hidden ring-0 ${studentGenderFilter === 'female' ? 'ring-4 ring-pink-300' : ''}`}>
-            <div className="bg-gradient-to-br from-yellow-400 to-amber-600 p-5 active:bg-none active:bg-transparent">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-white/90">Female Students</span>
-                <div className="rounded-lg bg-white/20 p-2"><User className="h-5 w-5 text-white" /></div>
-              </div>
-              <p className="mt-3 text-4xl font-extrabold text-white">{data.femaleStudents}</p>
-              <p className="mt-1 text-xs font-medium text-white/70">{femalePct}% of total students</p>
-            </div>
-          </div>
+        <button type="button" className="mms-stat-cell text-left" onClick={() => showSection('teachers')}>
+          <span className="mms-stat-icon text-amber-200"><GraduationCap className="h-4 w-4" /></span>
+          <span className="min-w-0 flex-1"><span className="block truncate text-xs text-slate-400">Teachers</span><span className="block text-2xl font-bold text-amber-100">{data.totalTeachers}</span></span>
+          <ArrowUpRight className="h-4 w-4 text-slate-500" />
         </button>
-        <button type="button" className="block w-full text-left" onClick={() => showSection('teachers')}>
-          <div className={`rounded-xl shadow-md transition hover:shadow-xl cursor-pointer overflow-hidden ring-0 ${activeSection === 'teachers' ? 'ring-4 ring-emerald-300' : ''}`}>
-            <div className="bg-gradient-to-br from-cyan-500 to-teal-700 p-5 active:bg-none active:bg-transparent">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-white/90">Total Teachers</span>
-                <div className="rounded-lg bg-white/20 p-2"><GraduationCap className="h-5 w-5 text-white" /></div>
-              </div>
-              <p className="mt-3 text-4xl font-extrabold text-white">{data.totalTeachers}</p>
-            </div>
-          </div>
+        <button type="button" className="mms-stat-cell text-left" onClick={() => showSection('classes')}>
+          <span className="mms-stat-icon text-cyan-200"><GraduationCap className="h-4 w-4" /></span>
+          <span className="min-w-0 flex-1"><span className="block truncate text-xs text-slate-400">Classes</span><span className="block text-2xl font-bold text-white">{data.totalClasses}</span></span>
+          <ArrowUpRight className="h-4 w-4 text-slate-500" />
         </button>
-        <button type="button" className="block w-full text-left" onClick={() => showSection('classes')}>
-          <div className={`rounded-xl shadow-md transition hover:shadow-xl cursor-pointer overflow-hidden ring-0 ${activeSection === 'classes' ? 'ring-4 ring-amber-300' : ''}`}>
-            <div className="bg-gradient-to-br from-purple-500 to-indigo-800 p-5 active:bg-none active:bg-transparent">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-white/90">Classes</span>
-                <div className="rounded-lg bg-white/20 p-2"><GraduationCap className="h-5 w-5 text-white" /></div>
-              </div>
-              <p className="mt-3 text-4xl font-extrabold text-white">{data.totalClasses}</p>
-            </div>
-          </div>
+      </section>
+      <div className="flex flex-wrap gap-2">
+        <button type="button" onClick={() => showStudents('all')} className="mms-filter-chip">
+          All students <span>{data.totalStudents}</span>
         </button>
-        <button type="button" className="block w-full text-left" onClick={handleShowTodayAbsent}>
-          <div className={`rounded-xl shadow-md transition hover:shadow-xl cursor-pointer overflow-hidden ring-0 ${activeSection === 'absent' ? 'ring-4 ring-rose-300' : ''}`}>
-            <div className="bg-gradient-to-br from-amber-400 to-orange-700 p-5 active:bg-none active:bg-transparent">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-white/90">Absent (Today)</span>
-                <div className="rounded-lg bg-white/20 p-2"><UserX className="h-5 w-5 text-white" /></div>
-              </div>
-              <p className="mt-3 text-4xl font-extrabold text-white">{data.todayAbsentCount}</p>
-            </div>
-          </div>
+        <button type="button" onClick={() => showStudents('male')} className={`mms-filter-chip${studentGenderFilter === 'male' ? ' is-selected' : ''}`}>
+          Boys <span>{data.maleStudents} · {malePct}%</span>
+        </button>
+        <button type="button" onClick={() => showStudents('female')} className={`mms-filter-chip${studentGenderFilter === 'female' ? ' is-selected' : ''}`}>
+          Girls <span>{data.femaleStudents} · {femalePct}%</span>
         </button>
       </div>
+      <section aria-label="Quick actions">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-slate-200">Quick access</h2>
+          <span className="text-xs text-slate-500">School tools</span>
+        </div>
+        <div className="mms-dashboard-actions">
+          <Link href="/admin/students" className="mms-quick-link" data-accent="cyan"><span className="mms-quick-icon"><Users /></span><span>Students</span></Link>
+          <Link href="/admin/attendance" className="mms-quick-link" data-accent="cyan"><span className="mms-quick-icon"><Calendar /></span><span>Attendance</span></Link>
+          <Link href="/admin/fees" className="mms-quick-link" data-accent="yellow"><span className="mms-quick-icon"><Wallet /></span><span>Fees ledger</span></Link>
+          <Link href="/admin/classes" className="mms-quick-link" data-accent="violet"><span className="mms-quick-icon"><GraduationCap /></span><span>Classes</span></Link>
+          <Link href="/admin/exams" className="mms-quick-link" data-accent="cyan"><span className="mms-quick-icon"><BookOpen /></span><span>Exam results</span></Link>
+          <Link href="/admin/leave-requests" className="mms-quick-link" data-accent="yellow"><span className="mms-quick-icon"><Calendar /></span><span>Leave notices</span></Link>
+          <Link href="/admin/teachers" className="mms-quick-link" data-accent="violet"><span className="mms-quick-icon"><Users /></span><span>Users & teachers</span></Link>
+          <Link href="/admin/settings" className="mms-quick-link" data-accent="cyan"><span className="mms-quick-icon"><Settings /></span><span>Settings</span></Link>
+        </div>
+      </section>
 
       {/* Inline list sections - shown by the KPI cards above (no redirect) */}
       {activeSection === 'students' && (

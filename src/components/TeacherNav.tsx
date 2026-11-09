@@ -13,12 +13,14 @@ import {
   Users,
   FileText,
   BookOpen,
+  LayoutDashboard,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useLogout } from '@/hooks/useAuth'
 import { AbsenceAlertBell } from '@/components/AbsenceAlertBell'
 import { AttendanceReminderBell } from '@/components/AttendanceReminderBell'
 import { AnnouncementBell } from '@/components/AnnouncementBell'
+import { MobileBottomNav } from '@/components/MobileBottomNav'
 
 
 export function TeacherNav() {
@@ -52,7 +54,7 @@ export function TeacherNav() {
           </Link>
 
           {/* Navigation Links */}
-          <div className="hidden md:flex flex-1 min-w-0 items-center justify-start space-x-1 overflow-x-auto pl-1">
+          <div className="hidden lg:flex flex-1 min-w-0 items-center justify-start space-x-1 overflow-x-auto pl-1">
             {links.map((link) => {
               const Icon = link.icon
               const isActive = pathname === link.href || pathname.startsWith(link.href)
@@ -92,32 +94,14 @@ export function TeacherNav() {
           </div>
         </div>
 
-        {/* Mobile Navigation */}
-        <div className="md:hidden pb-3">
-          <div className="flex flex-wrap gap-2">
-            {links.map((link) => {
-              const Icon = link.icon
-              const isActive = pathname === link.href || pathname.startsWith(link.href)
-              
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={cn(
-                    'flex items-center space-x-1 rounded-full px-3 py-2 text-sm font-medium',
-                    isActive
-                      ? 'bg-cyan-300/10 text-cyan-200 shadow-[inset_0_0_0_1px_rgba(103,232,249,0.35)]'
-                      : 'text-slate-400 hover:bg-white/5 hover:text-white'
-                  )}
-                >
-                  <Icon className="h-4 w-4" />
-                  <span>{link.label}</span>
-                </Link>
-              )
-            })}
-          </div>
-        </div>
       </div>
+      <MobileBottomNav items={[
+        { href: '/teacher', label: 'Home', icon: LayoutDashboard },
+        { href: '/teacher/classes', label: 'Classes', icon: GraduationCap },
+        { href: '/teacher/attendance', label: 'Attendance', icon: ClipboardList },
+        { href: '/teacher/mutabaah', label: 'Mutaba’ah', icon: BookOpen },
+        { href: '/profile', label: 'Profile', icon: User },
+      ]} />
     </nav>
   )
 }
