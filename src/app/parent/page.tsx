@@ -1,9 +1,8 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ArrowUpRight, BookOpen as BookOpenIcon, CalendarDays, CheckCircle2, GraduationCap, Loader2, LogOut, MessageCircle, Wallet } from 'lucide-react'
+import { ArrowUpRight, BookOpen as BookOpenIcon, CalendarDays, CheckCircle2, GraduationCap, Loader2, MessageCircle, Wallet } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
-import { useLogout } from '@/hooks/useAuth'
 import { rtdb } from '@/lib/database'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -11,6 +10,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { VoiceNoteRecorder } from '@/components/VoiceNoteRecorder'
+import { DashboardTopBar } from '@/components/DashboardTopBar'
+import { AnnouncementBell } from '@/components/AnnouncementBell'
 import type { Attendance, Class, FeeRecord, MutabaahLog, ParentExamResult, Student } from '@/types'
 
 type ChildData = {
@@ -25,7 +26,6 @@ const EMPTY: ChildData = { attendance: [], fees: [], logs: [], exams: [], classI
 
 export default function ParentPortalPage() {
   const { user } = useAuth()
-  const logoutUser = useLogout()
   const [children, setChildren] = useState<Student[]>([])
   const [selectedId, setSelectedId] = useState('')
   const [childData, setChildData] = useState<ChildData>(EMPTY)
@@ -169,19 +169,25 @@ export default function ParentPortalPage() {
     }
   }
 
-  const handleLogout = async () => {
-    const result = await logoutUser()
-    if (result.success) window.location.href = '/login'
-    else setError(result.error || 'Could not sign out.')
-  }
-
   if (loadingChildren) return <div className="flex h-[60vh] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-cyan-300" /></div>
 
   return (
+    <>
+    <DashboardTopBar
+      role="parent"
+      links={[
+        { href: '/parent', label: 'Dashboard', icon: GraduationCap },
+        { href: '/parent#communication-book', label: 'Daily book', icon: MessageCircle },
+        { href: '/parent#fee-history', label: 'Fees', icon: Wallet },
+        { href: '/parent#exam-results', label: 'Exam results', icon: GraduationCap },
+        { href: '/parent#leave-request', label: 'Leave request', icon: CalendarDays },
+      ]}
+      alerts={null}
+      announcement={<AnnouncementBell dark />}
+    />
     <div className="mms-dashboard space-y-6">
       <header className="flex items-center justify-between gap-3">
         <div><p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-300">MMS1 · Family</p><h1 className="mt-1 text-2xl font-bold tracking-tight text-white sm:text-3xl">Parent Portal</h1><p className="mt-1 text-sm text-slate-400">Welcome, {user?.name}. Keep up with your children’s learning.</p></div>
-        <Button type="button" variant="outline" aria-label="Sign out" onClick={handleLogout} className="h-11 w-11 shrink-0 border-white/15 p-0 text-slate-300 sm:h-auto sm:w-auto sm:px-4"><LogOut className="h-4 w-4 sm:mr-2" /><span className="hidden sm:inline">Sign out</span></Button>
       </header>
       {error && <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}
       {notice && <Alert variant="success"><AlertDescription>{notice}</AlertDescription></Alert>}
@@ -193,7 +199,7 @@ export default function ParentPortalPage() {
           <div className="flex items-center gap-2 text-sm text-slate-400"><GraduationCap className="h-4 w-4 shrink-0 text-cyan-300" />{childData.classInfo?.name || selectedChild?.className || 'Class pending'}{childData.classInfo?.section ? ` · ${childData.classInfo.section}` : ''}</div>
         </div>
         {loadingData ? <div className="flex h-48 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-cyan-300" /></div> : <>
-          <section aria-label="Child overview" className="mms-stat-panel">
+          <section id="child-overview" aria-label="Child overview" className="mms-stat-panel">
             <div className="mms-stat-cell"><span className="mms-stat-icon text-cyan-200"><CalendarDays className="h-4 w-4" /></span><span className="min-w-0 flex-1"><span className="block truncate text-xs text-slate-400">Today’s attendance</span><span className="block truncate text-base font-semibold capitalize text-white">{todayAttendance?.status || 'Not recorded'}</span></span><ArrowUpRight className="h-4 w-4 text-slate-500" /></div>
             <div className="mms-stat-cell"><span className="mms-stat-icon text-violet-200"><BookOpenIcon className="h-4 w-4" /></span><span className="min-w-0 flex-1"><span className="block truncate text-xs text-slate-400">Daily Mutaba’ah</span><span className="block truncate text-base font-semibold text-violet-100">{todayLog ? todayLog.evaluation === 'practice' ? 'Needs revision' : 'Lesson shared' : 'No update yet'}</span></span><ArrowUpRight className="h-4 w-4 text-slate-500" /></div>
             <div className="mms-stat-cell"><span className="mms-stat-icon text-amber-200"><Wallet className="h-4 w-4" /></span><span className="min-w-0 flex-1"><span className="block truncate text-xs text-slate-400">Fee balance</span><span className={`block truncate text-base font-semibold ${balanceDue > 0 ? 'text-amber-200' : 'text-emerald-300'}`}>{balanceDue.toLocaleString()}</span></span><ArrowUpRight className="h-4 w-4 text-slate-500" /></div>
@@ -204,11 +210,12 @@ export default function ParentPortalPage() {
             <div className="mms-dashboard-actions">
               <a href="#communication-book" className="mms-quick-link" data-accent="cyan"><span className="mms-quick-icon"><BookOpenIcon /></span><span>Daily book</span></a>
               <a href="#fee-history" className="mms-quick-link" data-accent="yellow"><span className="mms-quick-icon"><Wallet /></span><span>Fee history</span></a>
-              <a href="#leave-request" className="mms-quick-link" data-accent="violet"><span className="mms-quick-icon"><CalendarDays /></span><span>Request leave</span></a>
+              <a href="#exam-results" className="mms-quick-link" data-accent="violet"><span className="mms-quick-icon"><GraduationCap /></span><span>Exam results</span></a>
+              <a href="#leave-request" className="mms-quick-link" data-accent="yellow"><span className="mms-quick-icon"><CalendarDays /></span><span>Request leave</span></a>
             </div>
           </section>
           <section className="grid gap-4 lg:grid-cols-2">
-            <Card className="border-white/10 bg-[#0c1421]">
+            <Card id="exam-results" className="scroll-mt-24 border-white/10 bg-[#0c1421]">
               <CardHeader><CardTitle className="text-white">Quran & Qaida progress</CardTitle><CardDescription>Latest progress shared by the Ustaz.</CardDescription></CardHeader>
               <CardContent>{latestLog ? <div className="space-y-2"><p className="text-lg font-semibold text-cyan-100">{latestLog.surah || latestLog.pageOrLesson || latestLog.lessonType}{latestLog.ayahRange ? ` · Ayah ${latestLog.ayahRange}` : ''}</p><p className="text-sm text-slate-400">{latestLog.juz ? `${latestLog.juz} · ` : ''}{latestLog.pageOrLesson ? `Page / Qaida lesson ${latestLog.pageOrLesson}` : 'No page or Qaida lesson number entered'}{latestLog.sabqi ? ` · Sabqi: ${latestLog.sabqi}` : ''}{latestLog.manzil ? ` · Manzil: ${latestLog.manzil}` : ''}</p><p className="text-xs text-slate-500">Updated {latestLog.date}</p></div> : <p className="text-sm text-slate-400">Progress will appear when the Ustaz posts the first daily entry.</p>}</CardContent>
             </Card>
@@ -242,5 +249,6 @@ export default function ParentPortalPage() {
         </>}
       </>}
     </div>
+    </>
   )
 }

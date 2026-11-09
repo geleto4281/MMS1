@@ -25,7 +25,6 @@ import {
   Wallet,
   ClipboardCheck,
   ArrowUpRight,
-  Settings,
 } from 'lucide-react'
 import {
   ResponsiveContainer,
@@ -518,11 +517,7 @@ if (loading) {
           <Link href="/admin/students" className="mms-quick-link" data-accent="cyan"><span className="mms-quick-icon"><Users /></span><span>Students</span></Link>
           <Link href="/admin/attendance" className="mms-quick-link" data-accent="cyan"><span className="mms-quick-icon"><Calendar /></span><span>Attendance</span></Link>
           <Link href="/admin/fees" className="mms-quick-link" data-accent="yellow"><span className="mms-quick-icon"><Wallet /></span><span>Fees ledger</span></Link>
-          <Link href="/admin/classes" className="mms-quick-link" data-accent="violet"><span className="mms-quick-icon"><GraduationCap /></span><span>Classes</span></Link>
           <Link href="/admin/exams" className="mms-quick-link" data-accent="cyan"><span className="mms-quick-icon"><BookOpen /></span><span>Exam results</span></Link>
-          <Link href="/admin/leave-requests" className="mms-quick-link" data-accent="yellow"><span className="mms-quick-icon"><Calendar /></span><span>Leave notices</span></Link>
-          <Link href="/admin/teachers" className="mms-quick-link" data-accent="violet"><span className="mms-quick-icon"><Users /></span><span>Users & teachers</span></Link>
-          <Link href="/admin/settings" className="mms-quick-link" data-accent="cyan"><span className="mms-quick-icon"><Settings /></span><span>Settings</span></Link>
         </div>
       </section>
 

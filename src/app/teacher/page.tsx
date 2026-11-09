@@ -163,9 +163,7 @@ export default function TeacherPage() {
           <Link href="/teacher/students" className="mms-quick-link" data-accent="cyan"><span className="mms-quick-icon"><Users /></span><span>Students</span></Link>
           <Link href="/teacher/attendance" className="mms-quick-link" data-accent="cyan"><span className="mms-quick-icon"><ClipboardCheck /></span><span>Attendance</span></Link>
           <Link href="/teacher/mutabaah" className="mms-quick-link" data-accent="yellow"><span className="mms-quick-icon"><BookOpen /></span><span>Daily Mutaba’ah</span></Link>
-          <Link href="/teacher/classes" className="mms-quick-link" data-accent="violet"><span className="mms-quick-icon"><GraduationCap /></span><span>My classes</span></Link>
-          <Link href="/teacher/exams" className="mms-quick-link" data-accent="cyan"><span className="mms-quick-icon"><BookOpen /></span><span>Exams & results</span></Link>
-          <Link href="/teacher/history" className="mms-quick-link" data-accent="yellow"><span className="mms-quick-icon"><Calendar /></span><span>History</span></Link>
+          <Link href="/teacher/exams" className="mms-quick-link" data-accent="violet"><span className="mms-quick-icon"><GraduationCap /></span><span>Exams & results</span></Link>
         </div>
       </section>
 
