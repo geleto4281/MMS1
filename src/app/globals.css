@@ -1,0 +1,349 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 143 64% 24%; /* emblem deep green #166534 */
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 143 64% 24%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 143 64% 42%; /* emblem green (lighter for dark mode) */
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 143 64% 42%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+html {
+  scroll-behavior: smooth;
+}
+
+/* ── NeonWaveBackground animation ────────────────────────────
+   Slow, subtle horizontal drift so the light ribbons feel alive. */
+.nw-drift-a { animation: nwDriftA 24s ease-in-out infinite alternate; }
+.nw-drift-b { animation: nwDriftB 32s ease-in-out infinite alternate; }
+.nw-drift-c { animation: nwDriftC 28s ease-in-out infinite alternate; }
+.nw-drift-d { animation: nwDriftD 36s ease-in-out infinite alternate; }
+.nw-orb { animation: nwOrb 6s ease-in-out infinite alternate; }
+
+@keyframes nwDriftA { from { transform: translateX(0); }    to { transform: translateX(-48px); } }
+@keyframes nwDriftB { from { transform: translateX(-30px); } to { transform: translateX(30px); } }
+@keyframes nwDriftC { from { transform: translateX(0); }    to { transform: translateX(40px); } }
+@keyframes nwDriftD { from { transform: translateX(24px); }  to { transform: translateX(-24px); } }
+@keyframes nwOrb    { from { opacity: 0.35; }                to { opacity: 0.9; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .nw-drift-a, .nw-drift-b, .nw-drift-c, .nw-drift-d, .nw-orb {
+    animation: none;
+  }
+}
+
+/* ── Neon hover for links styled as buttons ─────────────────── */
+.btn {
+  position: relative;
+  z-index: 0;
+}
+
+.btn::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  z-index: -1;
+  border-radius: inherit;
+  background: linear-gradient(
+    45deg,
+    #22d3ee,
+    #3b82f6,
+    #8b5cf6,
+    #facc15,
+    #22d3ee
+  );
+  background-size: 500px;
+  filter: blur(8px);
+  opacity: 0;
+  transition: opacity 0.3s ease-in-out;
+  pointer-events: none;
+}
+
+.btn:hover::before {
+  opacity: 1;
+  /* Glow shows for 5 seconds, then fades out even while still hovering;
+     moving the mouse away and back restarts it. */
+  animation: glowing 20s linear infinite, glowFadeOut 5s linear forwards;
+}
+
+@keyframes glowing {
+  0% { background-position: 0 0; }
+  50% { background-position: 400% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes glowFadeOut {
+  0% { opacity: 0; }
+  8% { opacity: 1; }
+  75% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn:hover::before {
+    animation: none;
+  }
+}
+
+/* MMS1 dashboard skin */
+.mms1-app {
+  color: #e2e8f0;
+  background:
+    radial-gradient(ellipse at 82% 0%, rgba(19, 65, 93, 0.18), transparent 34rem),
+    #070b12;
+}
+
+.mms-dashboard {
+  color: #d7e0ec;
+}
+
+.mms-dashboard h1,
+.mms-dashboard h2,
+.mms-dashboard h3,
+.mms-dashboard .text-gray-900,
+.mms-dashboard .text-gray-950 {
+  color: #f1f5f9 !important;
+}
+
+.mms-dashboard .text-gray-800,
+.mms-dashboard .text-gray-700,
+.mms-dashboard .text-gray-600,
+.mms-dashboard .text-gray-500 {
+  color: #9aa9bc !important;
+}
+
+.mms-dashboard .bg-white {
+  background-color: #0c1421 !important;
+}
+
+.mms-dashboard [class*="from-green-50"],
+.mms-dashboard [class*="from-rose-50"],
+.mms-dashboard [class*="from-amber-50"] {
+  background-image: linear-gradient(135deg, #0d1725, #0a111c) !important;
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  color: #d7e0ec;
+}
+
+.mms-dashboard [class*="border-gray-200"],
+.mms-dashboard [class*="border-gray-100"],
+.mms-dashboard [class*="border-input"] {
+  border-color: rgba(148, 163, 184, 0.2) !important;
+}
+
+.mms-dashboard input,
+.mms-dashboard select,
+.mms-dashboard textarea {
+  color: #e2e8f0;
+  background-color: #080f1b;
+}
+
+.mms-dashboard input::placeholder {
+  color: #718198;
+}
+
+.mms-dashboard select option {
+  color: #e2e8f0;
+  background: #0c1421;
+}
+
+.mms-dashboard table {
+  color: #cbd5e1;
+  border-color: rgba(148, 163, 184, 0.18);
+}
+
+.mms-dashboard table th,
+.mms-dashboard table td {
+  border-color: rgba(148, 163, 184, 0.18) !important;
+}
+
+.mms-dashboard tbody tr:hover {
+  background-color: rgba(34, 211, 238, 0.06);
+}
+
+.mms-dashboard .recharts-cartesian-axis-tick-value {
+  fill: #94a3b8;
+}
+
+.mms-dashboard .recharts-cartesian-grid line {
+  stroke: rgba(148, 163, 184, 0.15);
+}
+
+.mms-dashboard button:focus-visible,
+.mms-dashboard a:focus-visible,
+.mms-dashboard input:focus-visible,
+.mms-dashboard select:focus-visible {
+  outline-color: #22d3ee;
+}
+
+/* ── Feature cards: gentle continuous bounce (faster on hover) ── */
+.card-bounce {
+  animation: cardBounce 2.4s ease-in-out infinite;
+}
+.card-bounce:hover {
+  animation: cardBounce 0.9s ease-in-out infinite;
+}
+
+@keyframes cardBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-bounce,
+  .card-bounce:hover {
+    animation: none;
+  }
+}
+
+
+::selection {
+  background: rgba(22, 101, 52, 0.2);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 8px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* ── Print support ────────────────────────────────────────────
+   Two print scenarios exist on the overall results page:
+   1. Printing the merged results TABLE  (.print-area)
+   2. Printing a single student CERTIFICATE (.cert-print)
+
+   When a certificate is open, we must hide the results table and
+   the modal backdrop so only the certificate itself is captured.
+   ─────────────────────────────────────────────────────────────── */
+@media print {
+  /* Ensure background images (like the certificate) are printed */
+  body,
+  .cert-print,
+  .cert-print * {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+loo  /* Make printable areas visible by default. A targeted exam print adds
+     .print-target so only that exam is shown. */
+  .print-area,
+  .print-area *,
+  .cert-print,
+  .cert-print * {
+    visibility: visible;
+  }
+
+  body:has(.print-target) .print-area {
+    display: none !important;
+  }
+
+  body:has(.print-target) .print-target .print-area {
+    display: block !important;
+  }
+
+  body:has(.print-target) .print-target,
+  body:has(.print-target) .print-target * {
+    visibility: visible;
+  }
+
+  /* Default: show the results table */
+  .print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    padding: 0;
+  }
+
+  /* Certificate: full bleed, no margins, no backdrop.
+     Do NOT set background: transparent here — CertificateOverlay
+     applies its background image via inline style and this would
+     wipe it out during print. */
+  .cert-print {
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .print-area table {
+    font-size: 11px;
+  }
+
+  /* When a certificate modal is open, hide the results table */
+  .cert-print ~ .print-area,
+  .cert-print + .print-area,
+  body:has(.cert-print) .print-area:not(.cert-print) {
+    display: none !important;
+  }
+}
