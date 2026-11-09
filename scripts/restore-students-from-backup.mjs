@@ -54,8 +54,11 @@ function loadEnvFile(filePath) {
 }
 loadEnvFile(join(root, '.env.local'))
 
-const ADMIN_EMAIL = process.env.SEED_ADMIN_EMAIL || 'khendeqmedresah1@gmail.com'
-const ADMIN_PASSWORD = process.env.SEED_ADMIN_PASSWORD || 'KH1234'
+const ADMIN_EMAIL = process.env.SEED_ADMIN_EMAIL
+const ADMIN_PASSWORD = process.env.SEED_ADMIN_PASSWORD
+if (!ADMIN_EMAIL || !ADMIN_PASSWORD) {
+  throw new Error('Set SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD in .env.local or the environment.')
+}
 const fileArg = process.argv.slice(2).find((a) => !a.startsWith('--'))
 const APPLY = process.argv.slice(2).includes('--apply')
 
