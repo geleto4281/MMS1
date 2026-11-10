@@ -1,6 +1,7 @@
 'use client'
 
-import { Moon, Sun } from 'lucide-react'
+import { Languages, Moon, Sun } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
 import { usePreferences, type AppLanguage } from '@/context/PreferencesContext'
 import { cn } from '@/lib/utils'
 
@@ -14,19 +15,64 @@ const LANGUAGE_OPTIONS: { value: AppLanguage; label: string }[] = [
 export function PreferencesControls({ className }: { className?: string }) {
   const { language, theme, setLanguage, toggleTheme, t } = usePreferences()
   const themeLabel = theme === 'dark' ? t('Light mode') : t('Dark mode')
+  const [languageMenuOpen, setLanguageMenuOpen] = useState(false)
+  const languageMenuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!languageMenuOpen) return
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!languageMenuRef.current?.contains(event.target as Node)) {
+        setLanguageMenuOpen(false)
+      }
+    }
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setLanguageMenuOpen(false)
+    }
+
+    document.addEventListener('pointerdown', handlePointerDown)
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [languageMenuOpen])
 
   return (
     <div className={cn('mms-preference-controls', className)}>
-      <label className="sr-only" htmlFor="app-language">{t('Choose language')}</label>
-      <select
-        id="app-language"
-        aria-label={t('Choose language')}
-        value={language}
-        onChange={(event) => setLanguage(event.target.value as AppLanguage)}
-        className="mms-language-select"
-      >
-        {LANGUAGE_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-      </select>
+      <div className="mms-language-control" ref={languageMenuRef}>
+        <button
+          type="button"
+          aria-label={t('Choose language')}
+          aria-expanded={languageMenuOpen}
+          aria-haspopup="menu"
+          title={t('Choose language')}
+          onClick={() => setLanguageMenuOpen((open) => !open)}
+          className="mms-preference-theme mms-language-trigger"
+        >
+          <Languages className="h-4 w-4" />
+        </button>
+        {languageMenuOpen && (
+          <div className="mms-language-menu" role="menu" aria-label={t('Choose language')}>
+            {LANGUAGE_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                role="menuitemradio"
+                aria-checked={language === option.value}
+                onClick={() => {
+                  setLanguage(option.value)
+                  setLanguageMenuOpen(false)
+                }}
+                className="mms-language-menu-item"
+              >
+                <span>{option.label}</span>
+                {language === option.value && <span aria-hidden="true">✓</span>}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
       <button
         type="button"
         onClick={toggleTheme}

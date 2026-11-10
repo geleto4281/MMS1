@@ -100,7 +100,7 @@ export function DashboardTopBar({
           </span>
           <span className="min-w-0">
             {role !== 'admin' && <span className="block truncate text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-300">MMS1</span>}
-            <span className="block text-sm font-semibold leading-tight text-white">{t('Dashboard')}</span>
+            <span className="mms-top-brand-label block text-sm font-semibold leading-tight text-white">{t('Dashboard')}</span>
           </span>
         </Link>
         <div className="mms-top-actions">

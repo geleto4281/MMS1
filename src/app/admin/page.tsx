@@ -457,8 +457,8 @@ if (loading) {
           <h1 className="mt-1 text-2xl font-bold tracking-tight text-white sm:text-3xl">Dashboard</h1>
           <p className="mt-1 text-sm text-slate-400">Your school at a glance</p>
         </div>
-        <div className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-yellow-300/30 bg-yellow-300/10 text-yellow-200 shadow-[0_0_22px_rgba(250,204,21,0.08)] sm:h-auto sm:w-auto sm:gap-3 sm:rounded-xl sm:px-4 sm:py-2.5 sm:text-sm sm:font-medium sm:text-slate-300">
-          <Calendar className="h-5 w-5 sm:h-4 sm:w-4" />
+        <div className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl border border-yellow-300/30 bg-yellow-300/10 px-3 py-2 text-yellow-200 shadow-[0_0_22px_rgba(250,204,21,0.08)] sm:gap-3 sm:px-4 sm:py-2.5 sm:text-sm sm:font-medium sm:text-slate-300">
+          <Calendar className="h-4 w-4" />
           <span className="hidden sm:inline">
           {new Date().toLocaleDateString(undefined, {
             weekday: 'long',
@@ -466,6 +466,13 @@ if (loading) {
             month: 'long',
             day: 'numeric',
           })}
+          </span>
+          <span className="text-xs font-medium sm:hidden">
+            {new Date().toLocaleDateString(undefined, {
+              weekday: 'short',
+              month: 'short',
+              day: 'numeric',
+            })}
           </span>
         </div>
       </div>
