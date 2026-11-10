@@ -168,17 +168,21 @@ export default function ParentsPage() {
   }
 
   return (
-    <div className="mms-dashboard space-y-6">
-      <header>
+    <div className="mms-dashboard mms-parent-admin-page space-y-6">
+      <header className="mms-parent-admin-hero">
+        <span className="mms-parent-admin-mark"><Users className="h-6 w-6" /></span>
+        <div>
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-300">Family accounts</p>
         <h1 className="mt-1 text-3xl font-bold tracking-tight text-white">Parents</h1>
         <p className="mt-1 text-sm text-slate-400">Create a parent login, assign children, and manage sibling links.</p>
+        </div>
+        <span className="mms-parent-admin-count">{parents.length} accounts</span>
       </header>
 
       {error && <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}
       {notice && <Alert variant="success"><AlertDescription>{notice}</AlertDescription></Alert>}
 
-      <Card className="border-white/10 bg-[#0c1421]">
+      <Card className="mms-parent-admin-card border-white/10 bg-[#0c1421]">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-white"><Plus className="h-5 w-5 text-cyan-300" />Register parent</CardTitle>
           <CardDescription>Create sign-in credentials and select all of this parent’s children. Selecting a child already linked to another account transfers that link.</CardDescription>
@@ -252,7 +256,7 @@ export default function ParentsPage() {
         </CardContent>
       </Card>
 
-      <Card className="border-white/10 bg-[#0c1421]">
+      <Card className="mms-parent-admin-card border-white/10 bg-[#0c1421]">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-white"><Users className="h-5 w-5 text-violet-300" />Registered parents ({parents.length})</CardTitle>
         </CardHeader>
@@ -260,11 +264,14 @@ export default function ParentsPage() {
           {!parents.length ? (
             <p className="py-5 text-center text-sm text-slate-400">No parent accounts registered yet.</p>
           ) : parents.map(({ parent, children }) => (
-            <article key={parent.uid} className="rounded-xl border border-white/10 bg-[#080f1b] p-4">
+            <article key={parent.uid} className="mms-parent-account-card">
               <div className="flex flex-wrap items-start justify-between gap-2">
-                <div>
-                  <h2 className="font-semibold text-slate-100">{parent.name}</h2>
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className="mms-parent-avatar" aria-hidden="true">{parent.name.trim().slice(0, 1).toUpperCase()}</span>
+                  <div className="min-w-0">
+                  <h2 className="truncate font-semibold text-slate-100">{parent.name}</h2>
                   <p className="text-sm text-slate-400">{parent.email}{parent.phone ? ` · ${parent.phone}` : ''}</p>
+                  </div>
                 </div>
                 <span className="rounded-full border border-cyan-300/20 bg-cyan-300/10 px-2.5 py-1 text-xs text-cyan-100">
                   {children.length} {children.length === 1 ? 'child' : 'children'}

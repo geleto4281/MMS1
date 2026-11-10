@@ -106,13 +106,18 @@ export interface MutabaahReply {
 export interface FeeRecord {
   id: string
   studentId: string
-  kind: 'charge' | 'payment'
+  kind: 'charge' | 'payment' | 'waiver'
   amount: number
   description: string
   date: string
   createdAt: string
   createdBy: string
   createdByName: string
+  ethiopianYear?: number
+  ethiopianMonth?: number
+  category?: 'MONTHLY_TUITION' | 'REGISTRATION' | 'BOOK_MATERIAL' | 'EXAM_FEE' | 'OTHER'
+  paymentMethod?: 'CASH' | 'CBE' | 'TELEBIRR' | 'AWASH' | 'ABYSSINIA'
+  receiptNumber?: string
 }
 
 export interface LeaveRequest {

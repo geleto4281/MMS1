@@ -12,9 +12,12 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { PreferencesControls } from '@/components/PreferencesControls'
+import { usePreferences } from '@/context/PreferencesContext'
 import { Lock, Mail, Loader2, KeyRound } from 'lucide-react'
 
 export default function LoginPage() {
+  const { t } = usePreferences()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -31,15 +34,15 @@ export default function LoginPage() {
     setResetMsg('')
     setResetError('')
     if (!email.trim()) {
-      setResetError('Please enter your email address.')
+      setResetError(t('Please enter your email address.'))
       return
     }
     setSending(true)
     try {
       await sendPasswordResetEmail(auth, email.trim())
-      setResetMsg('Password reset email sent. Please check your inbox.')
+      setResetMsg(t('Password reset email sent. Please check your inbox.'))
     } catch (err: any) {
-      setResetError(err.message || 'Failed to send reset email. Please try again.')
+      setResetError(err.message || t('Failed to send reset email. Please try again.'))
     } finally {
       setSending(false)
     }
@@ -74,18 +77,19 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center overflow-hidden p-4" style={{ background: '#070b12' }}>
+    <div className="mms-login-page relative flex min-h-screen items-center justify-center overflow-hidden p-4">
       <NeonWaveBackground />
-      <Card className="relative w-full max-w-md rounded-2xl border border-white/10 bg-[#0b111c]/95 text-slate-100 shadow-2xl shadow-cyan-950/30 backdrop-blur-xl">
+      <div className="absolute right-4 top-4 z-20"><PreferencesControls /></div>
+      <Card className="mms-login-card relative w-full max-w-md rounded-2xl border border-white/10 bg-[#0b111c]/95 text-slate-100 shadow-2xl shadow-cyan-950/30 backdrop-blur-xl">
         <CardHeader className='space-y-1 pt-8'>
-          <div className='mx-auto mb-3 h-16 w-16 overflow-hidden rounded-2xl bg-slate-900 shadow-lg ring-1 ring-cyan-300/50'>
-            <Image src='/image/khandaq-logo.png' alt='MMS1 logo' width={64} height={64} className='h-full w-full object-cover' />
+          <div className='mms-logo-badge mx-auto mb-3 h-20 w-20'>
+            <Image src='/image/mms1-logo.png' alt='MMS logo' width={72} height={72} className='h-full w-full object-contain p-1' />
           </div>
           <CardTitle className="text-center text-2xl font-bold text-white">
             MMS1
           </CardTitle>
           <CardDescription className="text-center text-slate-400">
-            {forgotMode ? 'Reset your password' : 'Sign in to your account to continue'}
+            {forgotMode ? t('Reset your password') : t('Sign in to your account to continue')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -93,7 +97,7 @@ export default function LoginPage() {
             {forgotMode ? (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="email">{t('Email')}</Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                     <Input
@@ -123,12 +127,12 @@ export default function LoginPage() {
                   {sending ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Sending...
+                      {t('Sending...')}
                     </>
                   ) : (
                     <>
                       <KeyRound className="mr-2 h-4 w-4" />
-                      Send Password Reset Link
+                      {t('Send Password Reset Link')}
                     </>
                   )}
                 </Button>
@@ -143,7 +147,7 @@ export default function LoginPage() {
                     }}
                     className="text-cyan-300 hover:underline"
                   >
-                    Back to sign in
+                    {t('Back to sign in')}
                   </button>
                 </p>
               </>
@@ -156,7 +160,7 @@ export default function LoginPage() {
                 )}
 
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="email">{t('Email')}</Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                     <Input
@@ -173,13 +177,13 @@ export default function LoginPage() {
 
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="password">Password</Label>
+                    <Label htmlFor="password">{t('Password')}</Label>
                     <button
                       type="button"
                       onClick={() => setForgotMode(true)}
                       className="text-sm text-cyan-300 hover:underline"
                     >
-                      Forgot password?
+                      {t('Forgot password?')}
                     </button>
                   </div>
                   <div className="relative">
@@ -200,10 +204,10 @@ export default function LoginPage() {
                   {isLoading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Signing in...
+                      {t('Signing in...')}
                     </>
                   ) : (
-                    'Sign In'
+                    t('Sign In')
                   )}
                 </Button>
               </>
@@ -211,7 +215,7 @@ export default function LoginPage() {
           </form>
 
           <div className="mt-4 text-center text-sm text-gray-600">
-            <p>Need access? Contact the madresah administrator to create your account.</p>
+            <p>{t('Need access? Contact the madresah administrator to create your account.')}</p>
           </div>
         </CardContent>
       </Card>

@@ -5,10 +5,12 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, LogOut, Menu, MoreVertical, RefreshCw, X } from 'lucide-react'
+import { LogOut, Menu, MoreVertical, RefreshCw, X } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useLogout } from '@/hooks/useAuth'
 import { cn } from '@/lib/utils'
+import { usePreferences } from '@/context/PreferencesContext'
+import { PreferencesControls } from '@/components/PreferencesControls'
 
 type DashboardLink = {
   href: string
@@ -29,6 +31,7 @@ export function DashboardTopBar({
 }) {
   const pathname = usePathname()
   const logout = useLogout()
+  const { t } = usePreferences()
   const [menuOpen, setMenuOpen] = useState(false)
   const [hash, setHash] = useState('')
   const [portalReady, setPortalReady] = useState(false)
@@ -50,8 +53,35 @@ export function DashboardTopBar({
     window.location.href = '/login'
   }
 
+  const isLinkActive = (href: string) => {
+    const [linkPath, linkHash] = href.split('#')
+    return (pathname === linkPath && (linkHash ? hash === `#${linkHash}` : !hash))
+      || (href !== '/admin' && href !== '/teacher' && href !== '/parent' && pathname.startsWith(`${linkPath}/`))
+  }
+
+  const renderLinks = (className: string) => links.map(({ href, label, icon: Icon }) => {
+    const active = isLinkActive(href)
+    return (
+      <Link
+        key={href}
+        href={href}
+        onClick={() => setMenuOpen(false)}
+        aria-current={active ? 'page' : undefined}
+        className={cn(className, active && 'is-active')}
+      >
+        <Icon className="h-4 w-4" />
+        <span>{t(label)}</span>
+      </Link>
+    )
+  })
+
   return (
-    <header className="mms-topbar">
+    <header className={cn('mms-topbar', role === 'admin' && 'mms-topbar-admin')}>
+      {role === 'admin' && (
+        <nav aria-label="Admin sections" className="mms-admin-desktop-nav">
+          {renderLinks('mms-admin-desktop-link')}
+        </nav>
+      )}
       <div className="mms-topbar-row">
         <button
           type="button"
@@ -63,16 +93,18 @@ export function DashboardTopBar({
           {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
         <Link href={role === 'admin' ? '/admin' : role === 'teacher' ? '/teacher' : '/parent'} className="mms-top-brand">
-          <Image
-            src="/image/khandaq-logo.png"
-            alt=""
-            width={32}
-            height={32}
-            className="h-8 w-8 rounded-xl object-cover ring-1 ring-cyan-300/70"
-          />
+          <span className="mms-logo-badge mms-logo-badge-small">
+            <Image
+              src="/image/mms1-logo.png"
+              alt="MMS logo"
+              width={38}
+              height={38}
+              className="h-full w-full object-contain"
+            />
+          </span>
           <span className="min-w-0">
             {role !== 'admin' && <span className="block truncate text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-300">MMS1</span>}
-            <span className="block text-sm font-semibold leading-tight text-white">Dashboard</span>
+            <span className="block text-sm font-semibold leading-tight text-white">{t('Dashboard')}</span>
           </span>
         </Link>
         <div className="mms-top-actions">
@@ -80,10 +112,11 @@ export function DashboardTopBar({
             {alerts}
           </div>
           <div className="mms-top-action announcement">{announcement}</div>
+          <PreferencesControls />
           <button
             type="button"
-            aria-label="Refresh dashboard"
-            title="Refresh"
+            aria-label={t('Refresh dashboard')}
+            title={t('Refresh dashboard')}
             onClick={() => window.location.reload()}
             className="mms-top-icon-button"
           >
@@ -91,8 +124,8 @@ export function DashboardTopBar({
           </button>
           <button
             type="button"
-            aria-label="Sign out"
-            title="Sign out"
+            aria-label={t('Sign out')}
+            title={t('Sign out')}
             onClick={handleLogout}
             className="mms-top-icon-button"
           >
@@ -100,7 +133,7 @@ export function DashboardTopBar({
           </button>
           <button
             type="button"
-            aria-label={menuOpen ? 'Close dashboard menu' : 'Open dashboard menu'}
+            aria-label={menuOpen ? t('Close dashboard menu') : t('Open dashboard menu')}
             aria-expanded={menuOpen}
             onClick={() => setMenuOpen((open) => !open)}
             className="mms-top-icon-button mms-overflow-trigger"
@@ -110,33 +143,17 @@ export function DashboardTopBar({
         </div>
       </div>
       {menuOpen && portalReady && createPortal(
-        <>
+        <div className="mms-menu-layer">
           <button
             type="button"
             className="mms-sidebar-backdrop"
-            aria-label="Close dashboard menu"
+            aria-label={t('Close dashboard menu')}
             onClick={() => setMenuOpen(false)}
           />
           <nav aria-label="Dashboard sections" className="mms-top-menu">
-            {links.map(({ href, label, icon: Icon }) => {
-              const [linkPath, linkHash] = href.split('#')
-              const active = (pathname === linkPath && (linkHash ? hash === `#${linkHash}` : !hash))
-                || (href !== '/admin' && href !== '/teacher' && href !== '/parent' && pathname.startsWith(`${linkPath}/`))
-              return (
-                <Link
-                  key={href}
-                  href={href}
-                  onClick={() => setMenuOpen(false)}
-                  aria-current={active ? 'page' : undefined}
-                  className={cn('mms-top-menu-link', active && 'is-active')}
-                >
-                  <Icon className="h-4 w-4" />
-                  <span>{label}</span>
-                </Link>
-              )
-            })}
+            {renderLinks('mms-top-menu-link')}
           </nav>
-        </>,
+        </div>,
         document.body
       )}
     </header>

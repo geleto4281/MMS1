@@ -271,6 +271,59 @@ export async function createFeeRecord(studentId: string, data: Omit<FeeRecord, '
   await set(ref(db, `fees/${studentId}/${id}`), { ...data, id })
 }
 
+export type FeeLedgerStatus = 'CLEARED / PAID' | 'ADVANCE CREDIT' | 'PARTIAL' | 'UNPAID'
+
+export interface FeeLedgerEntry extends FeeRecord {
+  runningBalance: number
+}
+
+export function calculateFeeLedger(records: FeeRecord[]): {
+  entries: FeeLedgerEntry[]
+  totalCharges: number
+  totalPayments: number
+  totalWaivers: number
+  balance: number
+  status: FeeLedgerStatus
+} {
+  let totalCharges = 0
+  let totalPayments = 0
+  let totalWaivers = 0
+  let runningBalance = 0
+
+  const entries = [...records]
+    .sort((a, b) =>
+      a.date.localeCompare(b.date)
+      || a.createdAt.localeCompare(b.createdAt)
+      || a.id.localeCompare(b.id)
+    )
+    .map((record) => {
+      if (record.kind === 'charge') {
+        totalCharges += record.amount
+        runningBalance += record.amount
+      } else if (record.kind === 'payment') {
+        totalPayments += record.amount
+        runningBalance -= record.amount
+      } else {
+        totalWaivers += record.amount
+        runningBalance -= record.amount
+      }
+
+      return { ...record, runningBalance }
+    })
+    .reverse()
+
+  const balance = totalCharges - (totalPayments + totalWaivers)
+  const status: FeeLedgerStatus = balance === 0
+    ? 'CLEARED / PAID'
+    : balance < 0
+      ? 'ADVANCE CREDIT'
+      : totalPayments > 0
+        ? 'PARTIAL'
+        : 'UNPAID'
+
+  return { entries, totalCharges, totalPayments, totalWaivers, balance, status }
+}
+
 export async function getMutabaahLogs(studentId: string): Promise<MutabaahLog[]> {
   const snap = await get(ref(db, `communicationBook/${studentId}`))
   const rows: MutabaahLog[] = []

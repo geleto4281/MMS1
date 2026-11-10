@@ -55,7 +55,7 @@ export function DashboardNav({ userRole }: DashboardNavProps) {
         <div className="flex justify-between items-center h-16">
           {/* Logo/Brand */}
           <Link href="/dashboard" className="flex items-center space-x-2 flex-shrink-0">
-            <Image src="/image/khandaq-logo.png" alt="MMS1 logo" width={36} height={36} className="h-9 w-9 rounded-xl object-cover ring-1 ring-cyan-300/70 shadow-[0_0_16px_rgba(34,211,238,0.2)]" />
+            <span className="mms-logo-badge mms-logo-badge-small"><Image src="/image/mms1-logo.png" alt="MMS logo" width={36} height={36} className="h-full w-full object-contain" /></span>
             <span className="font-bold text-xl tracking-tight text-white">MMS1</span>
           </Link>
 
