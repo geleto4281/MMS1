@@ -1,5 +1,6 @@
 'use client'
 
+import { LocalizedDashboardContent } from '@/components/LocalizedDashboardContent'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { rtdb } from '@/lib/database'
 import { useAuth } from '@/context/AuthContext'
@@ -515,6 +516,7 @@ if (loading) {
   }
 
   return (
+    <LocalizedDashboardContent>
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Students Management</h1>
@@ -984,5 +986,6 @@ if (loading) {
         />
       )}
     </div>
+    </LocalizedDashboardContent>
   )
 }

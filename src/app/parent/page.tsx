@@ -13,6 +13,7 @@ import { VoiceNoteRecorder } from '@/components/VoiceNoteRecorder'
 import { DashboardTopBar } from '@/components/DashboardTopBar'
 import { AnnouncementBell } from '@/components/AnnouncementBell'
 import { usePreferences } from '@/context/PreferencesContext'
+import { LocalizedDashboardContent } from '@/components/LocalizedDashboardContent'
 import { ETHIOPIAN_MONTHS, ethiopianDateLabel } from '@/lib/ethiopianDate'
 import type { Attendance, Class, FeeRecord, MutabaahEvaluation, MutabaahLog, ParentExamResult, Student } from '@/types'
 
@@ -193,6 +194,7 @@ export default function ParentPortalPage() {
   if (loadingChildren) return <div className="flex h-[60vh] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-cyan-300" /></div>
 
   return (
+    <LocalizedDashboardContent>
     <>
     <DashboardTopBar
       role="parent"
@@ -282,5 +284,6 @@ export default function ParentPortalPage() {
       </>}
     </div>
     </>
+    </LocalizedDashboardContent>
   )
 }

@@ -1,5 +1,6 @@
 'use client'
 
+import { LocalizedDashboardContent } from '@/components/LocalizedDashboardContent'
 import { useEffect, useMemo, useState } from 'react'
 import { rtdb } from '@/lib/database'
 import { useAuth } from '@/context/AuthContext'
@@ -80,6 +81,7 @@ export default function TeacherStudentsPage() {
   }
 
   return (
+    <LocalizedDashboardContent>
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-gray-900">My Students</h1>
@@ -221,5 +223,6 @@ export default function TeacherStudentsPage() {
         />
       )}
     </div>
+    </LocalizedDashboardContent>
   )
 }

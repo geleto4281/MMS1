@@ -1,5 +1,6 @@
 'use client'
 
+import { LocalizedDashboardContent } from '@/components/LocalizedDashboardContent'
 import { useEffect, useState } from 'react'
 import { auth } from '@/lib/firebase/config'
 import { rtdb } from '@/lib/database'
@@ -212,6 +213,7 @@ if (loading) {
   }
 
   return (
+    <LocalizedDashboardContent>
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Users Management</h1>
@@ -488,5 +490,6 @@ if (loading) {
         </div>
       )}
     </div>
+    </LocalizedDashboardContent>
   )
 }

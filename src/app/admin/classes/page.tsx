@@ -1,5 +1,6 @@
 'use client'
 
+import { LocalizedDashboardContent } from '@/components/LocalizedDashboardContent'
 import { useEffect, useMemo, useState } from 'react'
 import { rtdb } from '@/lib/database'
 import { Button } from '@/components/ui/button'
@@ -146,6 +147,7 @@ if (loading) {
   }
 
   return (
+    <LocalizedDashboardContent>
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Classes Management</h1>
@@ -340,5 +342,6 @@ if (loading) {
         <StudentDetailCard student={viewingStudent} classes={classes} onClose={() => setViewingStudent(null)} />
       )}
     </div>
+    </LocalizedDashboardContent>
   )
 }

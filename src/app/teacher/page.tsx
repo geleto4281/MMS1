@@ -1,5 +1,6 @@
 'use client'
 
+import { LocalizedDashboardContent } from '@/components/LocalizedDashboardContent'
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { rtdb } from '@/lib/database'
@@ -119,6 +120,7 @@ export default function TeacherPage() {
   const presentToday = todayAtt.filter((r) => r.status === 'present').length
 
   return (
+    <LocalizedDashboardContent>
     <div className="mms-dashboard space-y-6">
       <div>
         <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-300">MMS1 · Teacher</p>
@@ -300,5 +302,6 @@ export default function TeacherPage() {
       </Card>
 
     </div>
+    </LocalizedDashboardContent>
   )
 }

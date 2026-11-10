@@ -1,5 +1,6 @@
 'use client'
 
+import { LocalizedDashboardContent } from '@/components/LocalizedDashboardContent'
 import { useEffect, useState } from 'react'
 import { rtdb } from '@/lib/database'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -82,6 +83,7 @@ export default function SettingsPage() {
   }
 
   return (
+    <LocalizedDashboardContent>
     <div className="space-y-6 max-w-3xl">
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
@@ -218,5 +220,6 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
     </div>
+    </LocalizedDashboardContent>
   )
 }

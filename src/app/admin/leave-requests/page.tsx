@@ -1,5 +1,6 @@
 'use client'
 
+import { LocalizedDashboardContent } from '@/components/LocalizedDashboardContent'
 import { useEffect, useState } from 'react'
 import { CalendarDays, CheckCircle2, Loader2 } from 'lucide-react'
 import { rtdb } from '@/lib/database'
@@ -36,6 +37,7 @@ export default function AdminLeaveRequestsPage() {
   if (loading) return <div className="flex h-96 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-cyan-300" /></div>
 
   return (
+    <LocalizedDashboardContent>
     <div className="mms-dashboard space-y-6">
       <header><h1 className="text-3xl font-bold tracking-tight text-white">Parent Leave Notices</h1><p className="mt-1 text-slate-400">Review absence notices sent to the class Ustaz and administration.</p></header>
       {error && <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}
@@ -51,5 +53,6 @@ export default function AdminLeaveRequestsPage() {
         </CardContent>
       </Card>
     </div>
+    </LocalizedDashboardContent>
   )
 }

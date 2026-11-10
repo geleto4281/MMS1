@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import type { LucideIcon } from 'lucide-react'
+import { usePreferences } from '@/context/PreferencesContext'
 
 type MobileNavItem = {
   href: string
@@ -13,6 +14,7 @@ type MobileNavItem = {
 
 export function MobileBottomNav({ items }: { items: MobileNavItem[] }) {
   const pathname = usePathname()
+  const { t } = usePreferences()
   const [hash, setHash] = useState('')
 
   useEffect(() => {
@@ -38,7 +40,7 @@ export function MobileBottomNav({ items }: { items: MobileNavItem[] }) {
             className={`mms-mobile-nav-item${isActive ? ' is-active' : ''}`}
           >
             <Icon aria-hidden="true" className="h-5 w-5" />
-            <span>{label}</span>
+            <span>{t(label)}</span>
           </Link>
         )
       })}

@@ -1,5 +1,6 @@
 'use client'
 
+import { LocalizedDashboardContent } from '@/components/LocalizedDashboardContent'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Loader2, Plus, Search, Users } from 'lucide-react'
 import { auth } from '@/lib/firebase/config'
@@ -168,6 +169,7 @@ export default function ParentsPage() {
   }
 
   return (
+    <LocalizedDashboardContent>
     <div className="mms-dashboard mms-parent-admin-page space-y-6">
       <header className="mms-parent-admin-hero">
         <span className="mms-parent-admin-mark"><Users className="h-6 w-6" /></span>
@@ -306,5 +308,6 @@ export default function ParentsPage() {
         </CardContent>
       </Card>
     </div>
+    </LocalizedDashboardContent>
   )
 }

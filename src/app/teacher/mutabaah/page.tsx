@@ -1,5 +1,6 @@
 'use client'
 
+import { LocalizedDashboardContent } from '@/components/LocalizedDashboardContent'
 import { useEffect, useMemo, useState } from 'react'
 import { BookOpen, CheckCircle2, Loader2, MessageCircle, Mic, Send } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
@@ -183,6 +184,7 @@ export default function MutabaahTeacherPage() {
   if (loading) return <div className="flex h-96 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-cyan-300" /></div>
 
   return (
+    <LocalizedDashboardContent>
     <div className="mms-dashboard space-y-6">
       <header><h1 className="text-3xl font-bold tracking-tight text-white">Daily Mutaba’ah</h1><p className="mt-1 text-slate-400">Record each student’s Quran progress and keep the family in the loop.</p></header>
       {error && <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}
@@ -238,5 +240,6 @@ export default function MutabaahTeacherPage() {
         </Card>
       </>}
     </div>
+    </LocalizedDashboardContent>
   )
 }

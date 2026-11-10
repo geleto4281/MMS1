@@ -1,5 +1,6 @@
 'use client'
 
+import { LocalizedDashboardContent } from '@/components/LocalizedDashboardContent'
 import { useEffect, useMemo, useState } from 'react'
 import { rtdb } from '@/lib/database'
 import { Button } from '@/components/ui/button'
@@ -162,6 +163,7 @@ export default function AdminExamsPage() {
   }
 
   return (
+    <LocalizedDashboardContent>
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Exam Results</h1>
@@ -332,5 +334,6 @@ export default function AdminExamsPage() {
         </Card>
       )}
     </div>
+    </LocalizedDashboardContent>
   )
 }

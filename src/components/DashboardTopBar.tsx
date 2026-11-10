@@ -76,12 +76,8 @@ export function DashboardTopBar({
   })
 
   return (
+    <>
     <header className={cn('mms-topbar', role === 'admin' && 'mms-topbar-admin')}>
-      {role === 'admin' && (
-        <nav aria-label="Admin sections" className="mms-admin-desktop-nav">
-          {renderLinks('mms-admin-desktop-link')}
-        </nav>
-      )}
       <div className="mms-topbar-row">
         <button
           type="button"
@@ -142,6 +138,13 @@ export function DashboardTopBar({
           </button>
         </div>
       </div>
+    </header>
+      {role === 'admin' && portalReady && createPortal(
+        <nav aria-label={t('Admin navigation')} className="mms-admin-desktop-nav">
+          {renderLinks('mms-admin-desktop-link')}
+        </nav>,
+        document.body
+      )}
       {menuOpen && portalReady && createPortal(
         <div className="mms-menu-layer">
           <button
@@ -156,6 +159,6 @@ export function DashboardTopBar({
         </div>,
         document.body
       )}
-    </header>
+    </>
   )
 }

@@ -1,5 +1,6 @@
 'use client'
 
+import { LocalizedDashboardContent } from '@/components/LocalizedDashboardContent'
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
@@ -84,6 +85,7 @@ export default function TeacherExamsPage() {
   }
 
   return (
+    <LocalizedDashboardContent>
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -180,5 +182,6 @@ export default function TeacherExamsPage() {
         </Card>
       )}
     </div>
+    </LocalizedDashboardContent>
   )
 }

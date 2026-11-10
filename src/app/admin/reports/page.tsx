@@ -1,5 +1,6 @@
 'use client'
 
+import { LocalizedDashboardContent } from '@/components/LocalizedDashboardContent'
 import { useEffect, useMemo, useState } from 'react'
 import { rtdb } from '@/lib/database'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -159,6 +160,7 @@ export default function ReportsPage() {
   }
 
   return (
+    <LocalizedDashboardContent>
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
@@ -377,5 +379,6 @@ export default function ReportsPage() {
         </CardContent>
       </Card>
     </div>
+    </LocalizedDashboardContent>
   )
 }

@@ -1,5 +1,6 @@
 'use client'
 
+import { LocalizedDashboardContent } from '@/components/LocalizedDashboardContent'
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { rtdb } from '@/lib/database'
@@ -448,6 +449,7 @@ if (loading) {
   const femalePct = data.totalStudents ? Math.round((data.femaleStudents / data.totalStudents) * 100) : 0
 
   return (
+    <LocalizedDashboardContent>
     <div className="mms-dashboard space-y-6">
       <div className="flex items-center justify-between gap-3">
         <div>
@@ -1063,5 +1065,6 @@ if (loading) {
         />
       )}
     </div>
+    </LocalizedDashboardContent>
   )
 }

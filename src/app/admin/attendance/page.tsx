@@ -1,5 +1,6 @@
 'use client'
 
+import { LocalizedDashboardContent } from '@/components/LocalizedDashboardContent'
 import { useCallback, useEffect, useState } from 'react'
 import { rtdb } from '@/lib/database'
 import { useAuth } from '@/context/AuthContext'
@@ -164,6 +165,7 @@ export default function AttendancePage() {
   const excused = filtered.filter((r) => r.status === 'excused').length
 
   return (
+    <LocalizedDashboardContent>
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
@@ -394,6 +396,7 @@ export default function AttendancePage() {
         </>
       )}
     </div>
+    </LocalizedDashboardContent>
   )
 }
 

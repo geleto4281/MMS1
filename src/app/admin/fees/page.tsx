@@ -1,5 +1,6 @@
 'use client'
 
+import { LocalizedDashboardContent } from '@/components/LocalizedDashboardContent'
 import { useEffect, useMemo, useState } from 'react'
 import { Loader2, Plus, Wallet } from 'lucide-react'
 import { calculateFeeLedger, rtdb } from '@/lib/database'
@@ -134,6 +135,7 @@ export default function FeesPage() {
   if (loading) return <div className="flex h-96 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-cyan-300" /></div>
 
   return (
+    <LocalizedDashboardContent>
     <div className="mms-dashboard space-y-6">
       <header>
         <h1 className="text-3xl font-bold tracking-tight text-white">Fees & Payments</h1>
@@ -195,5 +197,6 @@ export default function FeesPage() {
         </>
       )}
     </div>
+    </LocalizedDashboardContent>
   )
 }
