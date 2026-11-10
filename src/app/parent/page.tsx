@@ -12,7 +12,14 @@ import { Label } from '@/components/ui/label'
 import { VoiceNoteRecorder } from '@/components/VoiceNoteRecorder'
 import { DashboardTopBar } from '@/components/DashboardTopBar'
 import { AnnouncementBell } from '@/components/AnnouncementBell'
-import type { Attendance, Class, FeeRecord, MutabaahLog, ParentExamResult, Student } from '@/types'
+import type { Attendance, Class, FeeRecord, MutabaahEvaluation, MutabaahLog, ParentExamResult, Student } from '@/types'
+
+const EVALUATION_LABELS: Record<MutabaahEvaluation, string> = {
+  excellent: 'Excellent · Mumtaz',
+  very_good: 'Very good · Jayyid jiddan',
+  good: 'Good · Jayyid',
+  practice: 'Repeat tomorrow · Needs practice',
+}
 
 type ChildData = {
   attendance: Attendance[]
@@ -231,7 +238,7 @@ export default function ParentPortalPage() {
           <Card id="communication-book" className="scroll-mt-24 border-white/10 bg-[#0c1421]">
             <CardHeader><CardTitle className="text-white">Digital communication book</CardTitle><CardDescription>Read the daily update, sign after home revision, and reply to the Ustaz.</CardDescription></CardHeader>
             <CardContent className="space-y-4">{childData.logs.length ? childData.logs.slice(0, 25).map((log) => { const replies = Object.values(log.replies || {}).sort((a, b) => a.createdAt.localeCompare(b.createdAt)); return <article key={log.id} className="rounded-xl border border-white/10 bg-[#080f1b] p-4"><div className="flex flex-wrap items-start justify-between gap-2"><div><h3 className="font-semibold text-white">{log.date} · {log.lessonType}</h3><p className="mt-1 text-sm text-slate-400">{log.surah ? `${log.surah}${log.ayahRange ? ` · Ayah ${log.ayahRange}` : ''}` : ''}{log.pageOrLesson ? ` · Page/lesson ${log.pageOrLesson}` : ''}</p></div>{log.acknowledgement ? <span className="inline-flex items-center gap-1 text-xs text-emerald-200"><CheckCircle2 className="h-4 w-4" />Seen {new Date(log.acknowledgement.acknowledgedAt).toLocaleString()}</span> : <Button type="button" size="sm" onClick={() => void signLog(log)} className="bg-cyan-400 text-slate-950 hover:bg-cyan-300">Seen & revised at home</Button>}</div>
-                <p className="mt-2 text-sm text-slate-300">Evaluation: <span className="capitalize text-cyan-100">{log.evaluation}</span></p>{log.juz && <p className="mt-1 text-sm text-slate-400">{log.juz}</p>}
+                <p className="mt-2 text-sm text-slate-300">Evaluation: <span className="text-cyan-100">{EVALUATION_LABELS[log.evaluation]}</span></p>{log.juz && <p className="mt-1 text-sm text-slate-400">{log.juz}</p>}
                 {log.sabqi && <p className="mt-1 text-sm text-slate-400">Sabqi: {log.sabqi}</p>}{log.manzil && <p className="mt-1 text-sm text-slate-400">Manzil: {log.manzil}</p>}{log.homework && <p className="mt-2 text-sm text-slate-300">Homework: {log.homework}</p>}{(log.tags || []).length > 0 && <div className="mt-2 flex flex-wrap gap-1.5">{(log.tags || []).map((tag) => <span key={tag} className="rounded-full bg-cyan-300/10 px-2 py-1 text-xs text-cyan-100">{tag}</span>)}</div>}{log.remark && <p className="mt-2 text-sm text-slate-300">{log.remark}</p>}{log.voiceNote && <audio controls src={log.voiceNote} className="mt-3 h-9 max-w-full" />}
                 <div className="mt-3 space-y-2">{replies.map((reply) => <div key={reply.id} className="rounded-lg bg-white/5 p-2 text-sm text-slate-300"><p><span className="font-medium text-cyan-200">{reply.authorName}:</span> {reply.message}</p>{reply.voiceNote && <audio controls src={reply.voiceNote} className="mt-2 h-8 max-w-full" />}</div>)}</div>
                 <div className="mt-3 space-y-2"><Input value={replyDrafts[log.id] || ''} onChange={(e) => setReplyDrafts((drafts) => ({ ...drafts, [log.id]: e.target.value }))} placeholder="Send a short message to the Ustaz" /><VoiceNoteRecorder value={replyVoices[log.id] || ''} onChange={(value) => setReplyVoices((voices) => ({ ...voices, [log.id]: value }))} /><Button type="button" size="sm" variant="outline" disabled={sendingReply === log.id || (!(replyDrafts[log.id] || '').trim() && !replyVoices[log.id])} onClick={() => void sendReply(log)}><MessageCircle className="mr-2 h-4 w-4" />{sendingReply === log.id ? 'Sending…' : 'Reply'}</Button></div>

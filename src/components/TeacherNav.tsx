@@ -23,7 +23,7 @@ export function TeacherNav() {
     { href: '/teacher/classes', label: 'My Classes', icon: GraduationCap },
     { href: '/teacher/students', label: 'Students', icon: Users },
     { href: '/teacher/exams', label: 'Exams & Results', icon: FileText },
-    { href: '/teacher/mutabaah', label: 'Mutaba’ah', icon: BookOpen },
+    { href: '/teacher/mutabaah', label: 'Student performance', icon: BookOpen },
     { href: '/teacher/attendance', label: 'Take Attendance', icon: ClipboardList },
     { href: '/teacher/history', label: 'History', icon: Calendar },
     { href: '/profile', label: 'Profile', icon: User },

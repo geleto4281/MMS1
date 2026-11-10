@@ -15,9 +15,17 @@ import type { Class, LeaveRequest, MutabaahEvaluation, MutabaahLog, Student } fr
 const TAGS = ['Good Adab', 'Prayed in Jama’ah', 'Needs home revision', 'Forgot Mus’haf/Book', 'Late to Halqah']
 const EVALUATIONS: { value: MutabaahEvaluation; label: string }[] = [
   { value: 'excellent', label: 'Excellent · Mumtaz' },
+  { value: 'very_good', label: 'Very good · Jayyid jiddan' },
   { value: 'good', label: 'Good · Jayyid' },
   { value: 'practice', label: 'Repeat tomorrow · Needs practice' },
 ]
+
+const EVALUATION_LABELS: Record<MutabaahEvaluation, string> = {
+  excellent: 'Excellent · Mumtaz',
+  very_good: 'Very good · Jayyid jiddan',
+  good: 'Good · Jayyid',
+  practice: 'Repeat tomorrow · Needs practice',
+}
 
 export default function MutabaahTeacherPage() {
   const { user } = useAuth()
@@ -211,6 +219,7 @@ export default function MutabaahTeacherPage() {
               const replies = Object.values(log.replies || {}).sort((a, b) => a.createdAt.localeCompare(b.createdAt))
               return <article key={log.id} className="rounded-xl border border-white/10 bg-[#080f1b] p-4">
                 <div className="flex flex-wrap items-start justify-between gap-2"><div><h3 className="font-semibold text-white">{student?.name || 'Student'} · {log.date}</h3><p className="mt-1 text-sm text-slate-400">{log.lessonType} {log.surah ? `· ${log.surah}` : ''} {log.juz ? `· ${log.juz}` : ''} {log.ayahRange ? `· Ayah ${log.ayahRange}` : ''} {log.pageOrLesson ? `· ${log.pageOrLesson}` : ''}</p></div><span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs ${log.acknowledgement ? 'bg-emerald-400/10 text-emerald-200' : 'bg-amber-300/10 text-amber-200'}`}>{log.acknowledgement ? <CheckCircle2 className="h-3.5 w-3.5" /> : null}{log.acknowledgement ? `Seen by ${log.acknowledgement.parentName}` : 'Awaiting parent sign-off'}</span></div>
+                <p className="mt-2 text-sm text-slate-300">Evaluation: <span className="text-cyan-100">{EVALUATION_LABELS[log.evaluation]}</span></p>
                 {(log.tags || []).length > 0 && <div className="mt-2 flex flex-wrap gap-1.5">{(log.tags || []).map((tag) => <span key={tag} className="rounded-full bg-cyan-300/10 px-2 py-1 text-xs text-cyan-100">{tag}</span>)}</div>}
                 {log.homework && <p className="mt-2 text-sm text-slate-300">Homework: {log.homework}</p>}
                 {log.remark && <p className="mt-2 text-sm text-slate-300">{log.remark}</p>}

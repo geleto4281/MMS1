@@ -38,6 +38,10 @@ export function DashboardTopBar({
     return () => window.removeEventListener('hashchange', updateHash)
   }, [])
 
+  useEffect(() => {
+    setMenuOpen(false)
+  }, [pathname])
+
   const handleLogout = async () => {
     await logout()
     window.location.href = '/login'
@@ -64,7 +68,7 @@ export function DashboardTopBar({
             className="h-8 w-8 rounded-xl object-cover ring-1 ring-cyan-300/70"
           />
           <span className="min-w-0">
-            <span className="block truncate text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-300">MMS1</span>
+            {role !== 'admin' && <span className="block truncate text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-300">MMS1</span>}
             <span className="block text-sm font-semibold leading-tight text-white">Dashboard</span>
           </span>
         </Link>
@@ -103,25 +107,33 @@ export function DashboardTopBar({
         </div>
       </div>
       {menuOpen && (
-        <nav aria-label="Dashboard sections" className="mms-top-menu">
-          {links.map(({ href, label, icon: Icon }) => {
-            const [linkPath, linkHash] = href.split('#')
-            const active = (pathname === linkPath && (linkHash ? hash === `#${linkHash}` : !hash))
-              || (href !== '/admin' && href !== '/teacher' && href !== '/parent' && pathname.startsWith(`${linkPath}/`))
-            return (
-              <Link
-                key={href}
-                href={href}
-                onClick={() => setMenuOpen(false)}
-                aria-current={active ? 'page' : undefined}
-                className={cn('mms-top-menu-link', active && 'is-active')}
-              >
-                <Icon className="h-4 w-4" />
-                <span>{label}</span>
-              </Link>
-            )
-          })}
-        </nav>
+        <>
+          <button
+            type="button"
+            className="mms-sidebar-backdrop"
+            aria-label="Close dashboard menu"
+            onClick={() => setMenuOpen(false)}
+          />
+          <nav aria-label="Dashboard sections" className="mms-top-menu">
+            {links.map(({ href, label, icon: Icon }) => {
+              const [linkPath, linkHash] = href.split('#')
+              const active = (pathname === linkPath && (linkHash ? hash === `#${linkHash}` : !hash))
+                || (href !== '/admin' && href !== '/teacher' && href !== '/parent' && pathname.startsWith(`${linkPath}/`))
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  onClick={() => setMenuOpen(false)}
+                  aria-current={active ? 'page' : undefined}
+                  className={cn('mms-top-menu-link', active && 'is-active')}
+                >
+                  <Icon className="h-4 w-4" />
+                  <span>{label}</span>
+                </Link>
+              )
+            })}
+          </nav>
+        </>
       )}
     </header>
   )

@@ -21,6 +21,7 @@ export function AdminNav() {
   const links = [
     { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/admin/teachers', label: 'Users', icon: Users },
+    { href: '/admin/parents', label: 'Parents', icon: Users },
     { href: '/admin/classes', label: 'Classes', icon: GraduationCap },
     { href: '/admin/students', label: 'Students', icon: GraduationCap },
     { href: '/admin/exams', label: 'Results', icon: FileText },

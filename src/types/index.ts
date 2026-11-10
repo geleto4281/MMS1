@@ -63,7 +63,7 @@ export interface Student {
   admissionDate?: string
 }
 
-export type MutabaahEvaluation = 'excellent' | 'good' | 'practice'
+export type MutabaahEvaluation = 'excellent' | 'very_good' | 'good' | 'practice'
 
 export interface MutabaahLog {
   id: string

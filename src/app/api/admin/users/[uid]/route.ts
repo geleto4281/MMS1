@@ -33,12 +33,13 @@ export async function PATCH(
   try {
     const { db, callerUid } = await verifyAdmin(request)
     const body = await request.json()
+    const hasParentStudentIds = Array.isArray(body?.studentIds)
     const assignedClassIds = Array.isArray(body?.assignedClassIds)
       ? [...new Set(body.assignedClassIds.filter((id: unknown): id is string => typeof id === 'string' && id.length > 0))]
       : null
 
-    if (!assignedClassIds) {
-      return NextResponse.json({ ok: false, error: 'assignedClassIds must be an array.' }, { status: 400 })
+    if (!assignedClassIds && !hasParentStudentIds) {
+      return NextResponse.json({ ok: false, error: 'Provide assignedClassIds or studentIds.' }, { status: 400 })
     }
 
     const [userSnap, classesSnap, usersSnap] = await Promise.all([
@@ -50,8 +51,97 @@ export async function PATCH(
     if (!user) {
       return NextResponse.json({ ok: false, error: 'User not found.' }, { status: 404 })
     }
+    if (user.role === 'parent' && hasParentStudentIds) {
+      const selectedStudentIds: string[] = [...new Set<string>(
+        body.studentIds.filter((id: unknown): id is string => typeof id === 'string' && id.length > 0)
+      )]
+      if (selectedStudentIds.length === 0) {
+        return NextResponse.json({ ok: false, error: 'Choose at least one active student to link.' }, { status: 400 })
+      }
+
+      const [studentsSnap, linksSnap] = await Promise.all([
+        db.ref('students').get(),
+        db.ref('parentStudentLinks').get(),
+      ])
+      const activeStudentIds = new Set<string>()
+      studentsSnap.forEach((child) => {
+        if (child.val()?.isActive !== false) activeStudentIds.add(child.key as string)
+      })
+      if (selectedStudentIds.some((studentId) => !activeStudentIds.has(studentId))) {
+        return NextResponse.json({ ok: false, error: 'One or more selected students are no longer active.' }, { status: 400 })
+      }
+
+      const selected = new Set(selectedStudentIds)
+      const updates: Record<string, unknown> = {}
+      const currentLinkedIds = new Set<string>()
+      linksSnap.child(uid).forEach((link) => {
+        if (link.val() === true) currentLinkedIds.add(link.key as string)
+      })
+      const parentIdsToUpdate = new Set<string>()
+
+      linksSnap.forEach((parentChild) => {
+        const oldParentId = parentChild.key as string
+        if (oldParentId === uid) return
+        parentChild.forEach((link) => {
+          if (selected.has(link.key as string) && link.val() === true) {
+            updates[`parentStudentLinks/${oldParentId}/${link.key}`] = null
+            parentIdsToUpdate.add(oldParentId)
+          }
+        })
+      })
+      selectedStudentIds.forEach((studentId) => {
+        currentLinkedIds.add(studentId)
+        updates[`parentStudentLinks/${uid}/${studentId}`] = true
+        updates[`students/${studentId}/parentEmail`] = user.email
+        updates[`students/${studentId}/parentName`] = user.name
+        if (user.phone) updates[`students/${studentId}/parentPhone`] = user.phone
+      })
+      updates[`users/${uid}/linkedStudentIds`] = [...currentLinkedIds]
+      updates[`users/${uid}/updatedAt`] = new Date().toISOString()
+
+      parentIdsToUpdate.forEach((oldParentId) => {
+        const oldProfile = usersSnap.child(oldParentId).val()
+        if (Array.isArray(oldProfile?.linkedStudentIds)) {
+          updates[`users/${oldParentId}/linkedStudentIds`] = oldProfile.linkedStudentIds.filter(
+            (studentId: string) => !selected.has(studentId)
+          )
+        }
+      })
+
+      const examsSnap = await db.ref('exams').get()
+      examsSnap.forEach((examChild) => {
+        const exam = examChild.val()
+        if (exam?.status !== 'saved') return
+        selectedStudentIds.forEach((studentId) => {
+          const row = exam.rows?.[studentId]
+          if (!row) return
+          const examId = examChild.key as string
+          updates[`studentExamResults/${studentId}/${examId}`] = {
+            id: examId,
+            classId: exam.classId || '',
+            title: exam.title || '',
+            type: exam.type || 'assignment',
+            academicYear: exam.academicYear || '',
+            updatedAt: exam.updatedAt || exam.createdAt || new Date().toISOString(),
+            row,
+          }
+        })
+      })
+
+      await db.ref().update(updates)
+      await db.ref('audit/audit_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8)).set({
+        actorId: callerUid,
+        action: 'update',
+        entity: 'user',
+        entityId: uid,
+        details: `Linked ${selectedStudentIds.length} student(s) to parent ${user.name}`,
+        timestamp: new Date().toISOString(),
+      })
+      return NextResponse.json({ ok: true })
+    }
+
     if (user.role !== 'teacher') {
-      return NextResponse.json({ ok: false, error: 'Only teacher assignments can be edited.' }, { status: 400 })
+      return NextResponse.json({ ok: false, error: 'Only teacher class assignments or parent-student links can be edited.' }, { status: 400 })
     }
 
     const selected = new Set(assignedClassIds)

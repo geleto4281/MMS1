@@ -8,12 +8,12 @@ export const dynamic = 'force-dynamic'
 /**
  * POST /api/admin/users
  *
- * Creates a new user (teacher or admin) using the Admin SDK so the client's
+ * Creates a new user using the Admin SDK so the client's
  * session is NOT hijacked (which happened with the browser's
  * `createUserWithEmailAndPassword`). Only an admin can do this.
  *
  * Auth: `Authorization: Bearer <idToken>` of an admin account.
- * Body: { name, email, password, phone?, role, assignedClassIds? }
+ * Body: { name, email, password, phone?, role, assignedClassIds?, studentIds? }
  */
 export async function POST(request: Request) {
   const authHeader = request.headers.get('authorization')
@@ -25,7 +25,7 @@ export async function POST(request: Request) {
   } catch {
     return NextResponse.json({ ok: false, error: 'Invalid JSON body.' }, { status: 400 })
   }
-  const { name, email, password, phone, role, assignedClassIds } = body || {}
+  const { name, email, password, phone, role, assignedClassIds, studentIds } = body || {}
 
   if (!email || !password || !name || typeof role !== 'string' || !['admin', 'teacher', 'parent'].includes(role)) {
     return NextResponse.json(
@@ -52,18 +52,32 @@ export async function POST(request: Request) {
     let linkedStudentIds: string[] = []
     if (role === 'parent') {
       const studentsSnap = await db.ref('students').get()
-      studentsSnap.forEach((child) => {
-        const student = child.val()
-        if (
-          student?.isActive !== false &&
-          String(student?.parentEmail || '').trim().toLowerCase() === normalizedEmail
-        ) {
-          linkedStudentIds.push(child.key as string)
+      if (studentIds !== undefined && !Array.isArray(studentIds)) {
+        return NextResponse.json({ ok: false, error: 'studentIds must be an array.' }, { status: 400 })
+      }
+      if (Array.isArray(studentIds)) {
+        const activeStudentIds = new Set<string>()
+        studentsSnap.forEach((child) => {
+          if (child.val()?.isActive !== false) activeStudentIds.add(child.key as string)
+        })
+        linkedStudentIds = [...new Set(studentIds.filter((id: unknown): id is string => typeof id === 'string' && id.length > 0))]
+        if (linkedStudentIds.length === 0 || linkedStudentIds.some((id) => !activeStudentIds.has(id))) {
+          return NextResponse.json({ ok: false, error: 'Choose at least one active student to link to this parent.' }, { status: 400 })
         }
-      })
+      } else {
+        studentsSnap.forEach((child) => {
+          const student = child.val()
+          if (
+            student?.isActive !== false &&
+            String(student?.parentEmail || '').trim().toLowerCase() === normalizedEmail
+          ) {
+            linkedStudentIds.push(child.key as string)
+          }
+        })
+      }
       if (linkedStudentIds.length === 0) {
         return NextResponse.json(
-          { ok: false, error: 'Add this email to at least one active student before creating the parent account.' },
+          { ok: false, error: 'Choose at least one active student or add this email to a student before creating the parent account.' },
           { status: 400 }
         )
       }
@@ -98,6 +112,37 @@ export async function POST(request: Request) {
       profileUpdates[`parentStudentLinks/${uid}/${studentId}`] = true
     })
     if (role === 'parent') {
+      if (Array.isArray(studentIds)) {
+        const [linksSnap, usersSnap] = await Promise.all([
+          db.ref('parentStudentLinks').get(),
+          db.ref('users').get(),
+        ])
+        const selected = new Set(linkedStudentIds)
+        const parentIdsToUpdate = new Set<string>()
+        linksSnap.forEach((parentChild) => {
+          const oldParentId = parentChild.key as string
+          if (oldParentId === uid) return
+          parentChild.forEach((link) => {
+            if (selected.has(link.key as string) && link.val() === true) {
+              profileUpdates[`parentStudentLinks/${oldParentId}/${link.key}`] = null
+              parentIdsToUpdate.add(oldParentId)
+            }
+          })
+        })
+        parentIdsToUpdate.forEach((oldParentId) => {
+          const oldProfile = usersSnap.child(oldParentId).val()
+          if (Array.isArray(oldProfile?.linkedStudentIds)) {
+            profileUpdates[`users/${oldParentId}/linkedStudentIds`] = oldProfile.linkedStudentIds.filter(
+              (studentId: string) => !selected.has(studentId)
+            )
+          }
+        })
+        linkedStudentIds.forEach((studentId) => {
+          profileUpdates[`students/${studentId}/parentEmail`] = normalizedEmail
+          profileUpdates[`students/${studentId}/parentName`] = name
+          if (phone) profileUpdates[`students/${studentId}/parentPhone`] = phone
+        })
+      }
       const examsSnap = await db.ref('exams').get()
       examsSnap.forEach((examChild) => {
         const exam = examChild.val()

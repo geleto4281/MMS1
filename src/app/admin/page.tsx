@@ -759,7 +759,7 @@ if (loading) {
                 variant="outline"
                 size="sm"
                 onClick={handleCopyAllNumbers}
-                className="whitespace-nowrap"
+                className="whitespace-nowrap border-slate-300 bg-slate-100 font-semibold text-slate-900 hover:bg-white hover:text-slate-950"
                 title="Copy all parent phone numbers to the clipboard"
               >
                 <Copy className="h-4 w-4 mr-2" /> Copy All Absent Numbers
@@ -769,7 +769,7 @@ if (loading) {
                 variant="outline"
                 size="sm"
                 onClick={handleClearStaleAbsences}
-                className="whitespace-nowrap"
+                className="whitespace-nowrap border-rose-300 bg-rose-100 font-semibold text-rose-900 hover:bg-rose-200 hover:text-rose-950"
                 title="Remove absences of students that were deleted"
               >
                 <Trash2 className="h-4 w-4 mr-2" /> Clear
