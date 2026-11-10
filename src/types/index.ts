@@ -64,6 +64,7 @@ export interface Student {
 }
 
 export type MutabaahEvaluation = 'excellent' | 'very_good' | 'good' | 'practice'
+export type MutabaahStudyArea = 'quran' | 'qaida' | 'kitab'
 
 export interface MutabaahLog {
   id: string
@@ -72,7 +73,11 @@ export interface MutabaahLog {
   date: string
   teacherId: string
   teacherName: string
-  lessonType: 'sabaq' | 'tilawah' | 'qaida'
+  lessonType: 'sabaq' | 'tilawah' | 'qaida' | 'kitab'
+  studyArea?: MutabaahStudyArea
+  studyName?: string
+  rangeFrom?: string
+  rangeTo?: string
   surah?: string
   juz?: string
   ayahRange?: string

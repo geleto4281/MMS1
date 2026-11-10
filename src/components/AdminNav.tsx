@@ -10,6 +10,7 @@ import {
   FileText,
   Wallet,
   CalendarDays,
+  BookOpen,
 } from 'lucide-react'
 import { AbsenceAlertBell } from '@/components/AbsenceAlertBell'
 import { AttendanceReminderBell } from '@/components/AttendanceReminderBell'
@@ -27,6 +28,7 @@ export function AdminNav() {
     { href: '/admin/exams', label: 'Results', icon: FileText },
     { href: '/admin/attendance', label: 'Attendance', icon: ClipboardList },
     { href: '/admin/fees', label: 'Fees', icon: Wallet },
+    { href: '/admin/mutabaah', label: 'Mutaba’ah', icon: BookOpen },
     { href: '/admin/leave-requests', label: 'Leave Notices', icon: CalendarDays },
     { href: '/admin/settings', label: 'Settings', icon: Settings },
     { href: '/profile', label: 'Profile', icon: User },

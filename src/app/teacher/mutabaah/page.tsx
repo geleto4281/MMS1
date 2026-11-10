@@ -11,21 +11,21 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { VoiceNoteRecorder } from '@/components/VoiceNoteRecorder'
-import type { Class, LeaveRequest, MutabaahEvaluation, MutabaahLog, Student } from '@/types'
+import type { Class, LeaveRequest, MutabaahEvaluation, MutabaahLog, MutabaahStudyArea, Student } from '@/types'
 
 const TAGS = ['Good Adab', 'Prayed in Jama’ah', 'Needs home revision', 'Forgot Mus’haf/Book', 'Late to Halqah']
 const EVALUATIONS: { value: MutabaahEvaluation; label: string }[] = [
-  { value: 'excellent', label: 'Excellent · Mumtaz' },
-  { value: 'very_good', label: 'Very good · Jayyid jiddan' },
-  { value: 'good', label: 'Good · Jayyid' },
-  { value: 'practice', label: 'Repeat tomorrow · Needs practice' },
+  { value: 'excellent', label: 'Excellent' },
+  { value: 'very_good', label: 'Very good' },
+  { value: 'good', label: 'Good' },
+  { value: 'practice', label: 'Study again' },
 ]
 
 const EVALUATION_LABELS: Record<MutabaahEvaluation, string> = {
-  excellent: 'Excellent · Mumtaz',
-  very_good: 'Very good · Jayyid jiddan',
-  good: 'Good · Jayyid',
-  practice: 'Repeat tomorrow · Needs practice',
+  excellent: 'Excellent',
+  very_good: 'Very good',
+  good: 'Good',
+  practice: 'Study again',
 }
 
 export default function MutabaahTeacherPage() {
@@ -37,11 +37,12 @@ export default function MutabaahTeacherPage() {
   const [classId, setClassId] = useState('')
   const [studentId, setStudentId] = useState('')
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10))
-  const [lessonType, setLessonType] = useState<'sabaq' | 'tilawah' | 'qaida'>('sabaq')
-  const [surah, setSurah] = useState('')
+  const [studyArea, setStudyArea] = useState<MutabaahStudyArea>('quran')
+  const [quranLessonType, setQuranLessonType] = useState<'sabaq' | 'tilawah'>('sabaq')
+  const [studyName, setStudyName] = useState('')
+  const [rangeFrom, setRangeFrom] = useState('')
+  const [rangeTo, setRangeTo] = useState('')
   const [juz, setJuz] = useState('')
-  const [ayahRange, setAyahRange] = useState('')
-  const [pageOrLesson, setPageOrLesson] = useState('')
   const [sabqi, setSabqi] = useState('')
   const [manzil, setManzil] = useState('')
   const [homework, setHomework] = useState('')
@@ -108,21 +109,35 @@ export default function MutabaahTeacherPage() {
       setError('Voice notes can only be sent to one student at a time.')
       return
     }
+    if (!studyName.trim() || !rangeFrom.trim() || !rangeTo.trim()) {
+      setError('Enter the surah, Qaida, or Kitab name and both the From and To sections.')
+      return
+    }
     setSaving(true)
     setError('')
     setNotice('')
     try {
       const currentClass = classes.find((item) => item.id === classId)
+      const lessonType: MutabaahLog['lessonType'] = studyArea === 'quran'
+        ? quranLessonType
+        : studyArea === 'qaida'
+          ? 'qaida'
+          : 'kitab'
+      const range = `${rangeFrom.trim()}–${rangeTo.trim()}`
       const data = {
         classId,
         date,
         teacherId: user.uid,
         teacherName: user.name,
+        studyArea,
+        studyName: studyName.trim(),
+        rangeFrom: rangeFrom.trim(),
+        rangeTo: rangeTo.trim(),
         lessonType,
-        surah: surah.trim() || undefined,
+        surah: studyArea === 'quran' ? studyName.trim() : undefined,
         juz: juz.trim() || undefined,
-        ayahRange: ayahRange.trim() || undefined,
-        pageOrLesson: pageOrLesson.trim() || undefined,
+        ayahRange: studyArea === 'quran' ? range : undefined,
+        pageOrLesson: studyArea !== 'quran' ? range : undefined,
         sabqi: sabqi.trim() || undefined,
         manzil: manzil.trim() || undefined,
         homework: homework.trim() || undefined,
@@ -136,10 +151,10 @@ export default function MutabaahTeacherPage() {
       const rows = await Promise.all(classStudents.map((student) => rtdb.getMutabaahLogs(student.id)))
       setLogs(rows.flat().sort((a, b) => b.date.localeCompare(a.date)))
       setNotice(`Saved ${targets.length === 1 ? targets[0].name + "'s" : `${targets.length} students’`} daily mutaba’ah${currentClass ? ` for ${currentClass.name}` : ''}.`)
-      setSurah('')
+      setStudyName('')
+      setRangeFrom('')
+      setRangeTo('')
       setJuz('')
-      setAyahRange('')
-      setPageOrLesson('')
       setSabqi('')
       setManzil('')
       setHomework('')
@@ -197,15 +212,16 @@ export default function MutabaahTeacherPage() {
               <div className="space-y-2"><Label htmlFor="mut-class">Halqah / class</Label><select id="mut-class" value={classId} onChange={(e) => { setClassId(e.target.value); setStudentId('') }} className="h-10 w-full rounded-lg border border-white/10 bg-[#080f1b] px-3 text-sm">{classes.map((item) => <option key={item.id} value={item.id}>{item.name}{item.section ? ` · ${item.section}` : ''}</option>)}</select></div>
               <div className="space-y-2"><Label htmlFor="mut-student">Student</Label><select id="mut-student" value={studentId} onChange={(e) => setStudentId(e.target.value)} className="h-10 w-full rounded-lg border border-white/10 bg-[#080f1b] px-3 text-sm"><option value="all">Whole class</option>{classStudents.map((student) => <option key={student.id} value={student.id}>{student.name}</option>)}</select></div>
               <div className="space-y-2"><Label htmlFor="mut-date">Date</Label><Input id="mut-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} required /></div>
-              <div className="space-y-2"><Label htmlFor="mut-type">New lesson type</Label><select id="mut-type" value={lessonType} onChange={(e) => setLessonType(e.target.value as typeof lessonType)} className="h-10 w-full rounded-lg border border-white/10 bg-[#080f1b] px-3 text-sm"><option value="sabaq">Sabaq · new memorization</option><option value="tilawah">Tilawah · recitation</option><option value="qaida">Qaida · foundation</option></select></div>
-              <div className="space-y-2"><Label htmlFor="mut-surah">Surah name</Label><Input id="mut-surah" value={surah} onChange={(e) => setSurah(e.target.value)} placeholder="e.g. Al-Mulk" /></div>
-              <div className="space-y-2"><Label htmlFor="mut-juz">Current Juz (optional)</Label><Input id="mut-juz" value={juz} onChange={(e) => setJuz(e.target.value)} placeholder="e.g. Juz 29" /></div>
-              <div className="space-y-2"><Label htmlFor="mut-ayah">From – to ayah</Label><Input id="mut-ayah" value={ayahRange} onChange={(e) => setAyahRange(e.target.value)} placeholder="e.g. 1–8" /></div>
-              <div className="space-y-2"><Label htmlFor="mut-page">Page / Qaida lesson</Label><Input id="mut-page" value={pageOrLesson} onChange={(e) => setPageOrLesson(e.target.value)} placeholder="Page or lesson number" /></div>
+              <div className="space-y-2"><Label htmlFor="mut-area">Study area</Label><select id="mut-area" value={studyArea} onChange={(e) => setStudyArea(e.target.value as MutabaahStudyArea)} className="h-10 w-full rounded-lg border border-white/10 bg-[#080f1b] px-3 text-sm"><option value="quran">Quran</option><option value="qaida">Qaida</option><option value="kitab">Kitab</option></select></div>
+              {studyArea === 'quran' && <div className="space-y-2"><Label htmlFor="mut-quran-type">Quran lesson</Label><select id="mut-quran-type" value={quranLessonType} onChange={(e) => setQuranLessonType(e.target.value as typeof quranLessonType)} className="h-10 w-full rounded-lg border border-white/10 bg-[#080f1b] px-3 text-sm"><option value="sabaq">Sabaq · new memorization</option><option value="tilawah">Tilawah · recitation</option></select></div>}
+              <div className="space-y-2"><Label htmlFor="mut-study-name">{studyArea === 'quran' ? 'Surah name' : studyArea === 'qaida' ? 'Qaida name / level' : 'Kitab name'}</Label><Input id="mut-study-name" value={studyName} onChange={(e) => setStudyName(e.target.value)} placeholder={studyArea === 'quran' ? 'e.g. Al-Mulk' : studyArea === 'qaida' ? 'e.g. Qaida Noorania' : 'e.g. Kitab al-Adab'} required /></div>
+              <div className="space-y-2"><Label htmlFor="mut-from">{studyArea === 'quran' ? 'From ayah' : 'From page / lesson'}</Label><Input id="mut-from" value={rangeFrom} onChange={(e) => setRangeFrom(e.target.value)} placeholder="Starting ayah, page, or lesson" required /></div>
+              <div className="space-y-2"><Label htmlFor="mut-to">{studyArea === 'quran' ? 'To ayah' : 'To page / lesson'}</Label><Input id="mut-to" value={rangeTo} onChange={(e) => setRangeTo(e.target.value)} placeholder="Ending ayah, page, or lesson" required /></div>
+              {studyArea === 'quran' && <div className="space-y-2"><Label htmlFor="mut-juz">Current Juz (optional)</Label><Input id="mut-juz" value={juz} onChange={(e) => setJuz(e.target.value)} placeholder="e.g. Juz 29" /></div>}
               <div className="space-y-2"><Label htmlFor="mut-sabqi">Recent revision · Sabqi</Label><Input id="mut-sabqi" value={sabqi} onChange={(e) => setSabqi(e.target.value)} placeholder="Juz or surah range" /></div>
               <div className="space-y-2"><Label htmlFor="mut-manzil">Old revision · Manzil / Muraja’ah</Label><Input id="mut-manzil" value={manzil} onChange={(e) => setManzil(e.target.value)} placeholder="Juz or surah range" /></div>
-              <div className="space-y-2"><Label htmlFor="mut-homework">Kitab / Islamic studies homework</Label><Input id="mut-homework" value={homework} onChange={(e) => setHomework(e.target.value)} placeholder="Short homework or class note" /></div>
-              <div className="space-y-2"><Label htmlFor="mut-grade">Evaluation</Label><select id="mut-grade" value={evaluation} onChange={(e) => setEvaluation(e.target.value as MutabaahEvaluation)} className="h-10 w-full rounded-lg border border-white/10 bg-[#080f1b] px-3 text-sm">{EVALUATIONS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></div>
+              <div className="space-y-2"><Label htmlFor="mut-homework">Homework / class note (optional)</Label><Input id="mut-homework" value={homework} onChange={(e) => setHomework(e.target.value)} placeholder="Short homework or class note" /></div>
+              <fieldset className="space-y-2 md:col-span-2"><legend className="text-sm font-medium">Performance rating</legend><div className="grid grid-cols-2 gap-2 sm:grid-cols-4">{EVALUATIONS.map((item) => <button key={item.value} type="button" aria-pressed={evaluation === item.value} onClick={() => setEvaluation(item.value)} className={`min-h-11 rounded-xl border px-3 py-2 text-sm font-medium transition-colors ${evaluation === item.value ? 'border-cyan-300/60 bg-cyan-300/15 text-cyan-100' : 'border-white/10 bg-[#080f1b] text-slate-400 hover:border-white/25'}`}>{item.label}</button>)}</div></fieldset>
               <div className="space-y-2 md:col-span-2"><Label htmlFor="mut-remark">Teacher remark</Label><Input id="mut-remark" value={remark} onChange={(e) => setRemark(e.target.value)} placeholder="Short note for the parent" /></div>
               <fieldset className="space-y-2 md:col-span-2"><legend className="text-sm font-medium">Tarbiyah & adab tags</legend><div className="flex flex-wrap gap-2">{TAGS.map((tag) => <button key={tag} type="button" onClick={() => toggleTag(tag)} className={`rounded-full border px-3 py-1.5 text-xs ${tags.includes(tag) ? 'border-cyan-300/50 bg-cyan-300/10 text-cyan-100' : 'border-white/10 text-slate-400'}`}>{tag}</button>)}</div></fieldset>
               <div className="space-y-2 md:col-span-2"><Label>Voice note (optional · up to 45 seconds)</Label><VoiceNoteRecorder value={voiceNote} onChange={setVoiceNote} /></div>
@@ -220,7 +236,7 @@ export default function MutabaahTeacherPage() {
               const student = students.find((item) => item.id === log.studentId)
               const replies = Object.values(log.replies || {}).sort((a, b) => a.createdAt.localeCompare(b.createdAt))
               return <article key={log.id} className="rounded-xl border border-white/10 bg-[#080f1b] p-4">
-                <div className="flex flex-wrap items-start justify-between gap-2"><div><h3 className="font-semibold text-white">{student?.name || 'Student'} · {log.date}</h3><p className="mt-1 text-sm text-slate-400">{log.lessonType} {log.surah ? `· ${log.surah}` : ''} {log.juz ? `· ${log.juz}` : ''} {log.ayahRange ? `· Ayah ${log.ayahRange}` : ''} {log.pageOrLesson ? `· ${log.pageOrLesson}` : ''}</p></div><span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs ${log.acknowledgement ? 'bg-emerald-400/10 text-emerald-200' : 'bg-amber-300/10 text-amber-200'}`}>{log.acknowledgement ? <CheckCircle2 className="h-3.5 w-3.5" /> : null}{log.acknowledgement ? `Seen by ${log.acknowledgement.parentName}` : 'Awaiting parent sign-off'}</span></div>
+                <div className="flex flex-wrap items-start justify-between gap-2"><div><h3 className="font-semibold text-white">{student?.name || 'Student'} · {log.date}</h3><p className="mt-1 text-sm text-slate-400">{log.studyArea || log.lessonType} · {log.studyName || log.surah || ''}{log.rangeFrom && log.rangeTo ? ` · ${log.rangeFrom}–${log.rangeTo}` : log.ayahRange ? ` · Ayah ${log.ayahRange}` : log.pageOrLesson ? ` · ${log.pageOrLesson}` : ''} {log.juz ? `· ${log.juz}` : ''}</p></div><span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs ${log.acknowledgement ? 'bg-emerald-400/10 text-emerald-200' : 'bg-amber-300/10 text-amber-200'}`}>{log.acknowledgement ? <CheckCircle2 className="h-3.5 w-3.5" /> : null}{log.acknowledgement ? `Seen by ${log.acknowledgement.parentName}` : 'Awaiting parent sign-off'}</span></div>
                 <p className="mt-2 text-sm text-slate-300">Evaluation: <span className="text-cyan-100">{EVALUATION_LABELS[log.evaluation]}</span></p>
                 {(log.tags || []).length > 0 && <div className="mt-2 flex flex-wrap gap-1.5">{(log.tags || []).map((tag) => <span key={tag} className="rounded-full bg-cyan-300/10 px-2 py-1 text-xs text-cyan-100">{tag}</span>)}</div>}
                 {log.homework && <p className="mt-2 text-sm text-slate-300">Homework: {log.homework}</p>}
