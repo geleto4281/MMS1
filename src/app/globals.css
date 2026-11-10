@@ -509,7 +509,7 @@ button.mms-stat-cell:hover {
   right: auto;
   bottom: 0;
   left: 0;
-  z-index: 61;
+  z-index: 1001;
   display: grid;
   width: min(19rem, calc(100vw - 2.5rem));
   max-height: calc(100dvh - 60px);
@@ -528,7 +528,7 @@ button.mms-stat-cell:hover {
 
 .mms-sidebar-backdrop {
   position: fixed;
-  z-index: 60;
+  z-index: 1000;
   inset: 60px 0 0;
   width: 100%;
   border: 0;

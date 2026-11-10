@@ -3,6 +3,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { usePathname } from 'next/navigation'
 import { LayoutDashboard, LogOut, Menu, MoreVertical, RefreshCw, X } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
@@ -30,8 +31,10 @@ export function DashboardTopBar({
   const logout = useLogout()
   const [menuOpen, setMenuOpen] = useState(false)
   const [hash, setHash] = useState('')
+  const [portalReady, setPortalReady] = useState(false)
 
   useEffect(() => {
+    setPortalReady(true)
     const updateHash = () => setHash(window.location.hash)
     updateHash()
     window.addEventListener('hashchange', updateHash)
@@ -106,7 +109,7 @@ export function DashboardTopBar({
           </button>
         </div>
       </div>
-      {menuOpen && (
+      {menuOpen && portalReady && createPortal(
         <>
           <button
             type="button"
@@ -133,7 +136,8 @@ export function DashboardTopBar({
               )
             })}
           </nav>
-        </>
+        </>,
+        document.body
       )}
     </header>
   )
