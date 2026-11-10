@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAuth } from '@/context/AuthContext'
 import { rtdb } from '@/lib/database'
+import { QURAN_SURAHS } from '@/lib/mutabaah'
 import type { Class, MutabaahEvaluation, MutabaahLog, MutabaahStudyArea, Student } from '@/types'
 
 type AdminMutabaahEntry = {
@@ -35,11 +36,21 @@ export default function AdminMutabaahPage() {
   const [classId, setClassId] = useState('')
   const [studentId, setStudentId] = useState('all')
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10))
-  const [studyArea, setStudyArea] = useState<MutabaahStudyArea>('quran')
-  const [quranLessonType, setQuranLessonType] = useState<'sabaq' | 'tilawah'>('sabaq')
-  const [studyName, setStudyName] = useState('')
-  const [rangeFrom, setRangeFrom] = useState('')
-  const [rangeTo, setRangeTo] = useState('')
+  const [studyAreas, setStudyAreas] = useState<MutabaahStudyArea[]>(['quran'])
+  const [quranTracks, setQuranTracks] = useState<Array<'hifz' | 'nezer'>>([])
+  const [hifzSurah, setHifzSurah] = useState('')
+  const [hifzJuz, setHifzJuz] = useState('')
+  const [hifzFromAyah, setHifzFromAyah] = useState('')
+  const [hifzToAyah, setHifzToAyah] = useState('')
+  const [nezerSurah, setNezerSurah] = useState('')
+  const [nezerFromAyah, setNezerFromAyah] = useState('')
+  const [nezerToAyah, setNezerToAyah] = useState('')
+  const [qaidaName, setQaidaName] = useState('')
+  const [qaidaFrom, setQaidaFrom] = useState('')
+  const [qaidaTo, setQaidaTo] = useState('')
+  const [kitabName, setKitabName] = useState('')
+  const [kitabFrom, setKitabFrom] = useState('')
+  const [kitabTo, setKitabTo] = useState('')
   const [evaluation, setEvaluation] = useState<MutabaahEvaluation>('good')
   const [remark, setRemark] = useState('')
   const [loading, setLoading] = useState(true)
@@ -87,6 +98,18 @@ export default function AdminMutabaahPage() {
     [students, classId]
   )
 
+  const toggleStudyArea = (area: MutabaahStudyArea) => {
+    setStudyAreas((current) => current.includes(area)
+      ? current.filter((value) => value !== area)
+      : [...current, area])
+  }
+
+  const toggleQuranTrack = (track: 'hifz' | 'nezer') => {
+    setQuranTracks((current) => current.includes(track)
+      ? current.filter((value) => value !== track)
+      : [...current, track])
+  }
+
   const createEntry = async (event: React.FormEvent) => {
     event.preventDefault()
     const targets = studentId === 'all' ? formStudents : formStudents.filter((student) => student.id === studentId)
@@ -94,8 +117,28 @@ export default function AdminMutabaahPage() {
       setError('Select a class with at least one active student.')
       return
     }
-    if (!studyName.trim() || !rangeFrom.trim() || !rangeTo.trim()) {
-      setError('Enter the study name and both the From and To sections.')
+    if (!studyAreas.length) {
+      setError('Select at least one study area: Quran, Qaida, or Kitab.')
+      return
+    }
+    if (studyAreas.includes('quran') && !quranTracks.length) {
+      setError('Select Hifz, Nezer, or both for the Quran lesson.')
+      return
+    }
+    if (studyAreas.includes('quran') && quranTracks.includes('hifz') && (!hifzSurah || !hifzFromAyah.trim() || !hifzToAyah.trim())) {
+      setError('For Hifz, select the memorized Surah and enter the From and To ayahs.')
+      return
+    }
+    if (studyAreas.includes('quran') && quranTracks.includes('nezer') && (!nezerSurah || !nezerFromAyah.trim() || !nezerToAyah.trim())) {
+      setError('For Nezer, select the Surah and enter the From and To ayahs.')
+      return
+    }
+    if (studyAreas.includes('qaida') && (!qaidaName.trim() || !qaidaFrom.trim() || !qaidaTo.trim())) {
+      setError('Complete the Qaida name and its From and To lesson numbers.')
+      return
+    }
+    if (studyAreas.includes('kitab') && (!kitabName.trim() || !kitabFrom.trim() || !kitabTo.trim())) {
+      setError('Complete the Kitab name and its From and To pages or lessons.')
       return
     }
 
@@ -103,31 +146,74 @@ export default function AdminMutabaahPage() {
     setError('')
     setNotice('')
     try {
-      const lessonType: MutabaahLog['lessonType'] = studyArea === 'quran'
-        ? quranLessonType
-        : studyArea === 'qaida'
-          ? 'qaida'
-          : 'kitab'
-      const range = `${rangeFrom.trim()}–${rangeTo.trim()}`
-      await Promise.all(targets.map((student) => rtdb.createMutabaahLog(student.id, {
-        studentId: student.id,
+      const common = {
         classId,
         date,
         teacherId: user.uid,
         teacherName: user.name || 'Administration',
-        studyArea,
-        studyName: studyName.trim(),
-        rangeFrom: rangeFrom.trim(),
-        rangeTo: rangeTo.trim(),
-        lessonType,
-        surah: studyArea === 'quran' ? studyName.trim() : undefined,
-        ayahRange: studyArea === 'quran' ? range : undefined,
-        pageOrLesson: studyArea !== 'quran' ? range : undefined,
         evaluation,
         tags: [],
         remark: remark.trim() || undefined,
         createdAt: new Date().toISOString(),
-      })))
+      }
+      const createLogsForStudent = (student: Student) => {
+        const logs: Omit<MutabaahLog, 'id'>[] = []
+        if (studyAreas.includes('quran')) {
+          const hasHifz = quranTracks.includes('hifz')
+          const hasNezer = quranTracks.includes('nezer')
+          const hifzRange = `${hifzFromAyah.trim()}–${hifzToAyah.trim()}`
+          const nezerRange = `${nezerFromAyah.trim()}–${nezerToAyah.trim()}`
+          logs.push({
+            ...common,
+            studentId: student.id,
+            studyArea: 'quran',
+            studyName: hasHifz ? hifzSurah : nezerSurah,
+            lessonType: hasHifz ? 'sabaq' : 'tilawah',
+            quranTracks,
+            hifzSurah: hasHifz ? hifzSurah : undefined,
+            hifzJuz: hasHifz ? hifzJuz.trim() || undefined : undefined,
+            hifzFromAyah: hasHifz ? hifzFromAyah.trim() : undefined,
+            hifzToAyah: hasHifz ? hifzToAyah.trim() : undefined,
+            nezerSurah: hasNezer ? nezerSurah : undefined,
+            nezerFromAyah: hasNezer ? nezerFromAyah.trim() : undefined,
+            nezerToAyah: hasNezer ? nezerToAyah.trim() : undefined,
+            surah: hasHifz ? hifzSurah : nezerSurah,
+            juz: hasHifz ? hifzJuz.trim() || undefined : undefined,
+            rangeFrom: hasHifz && !hasNezer ? hifzFromAyah.trim() : hasNezer && !hasHifz ? nezerFromAyah.trim() : undefined,
+            rangeTo: hasHifz && !hasNezer ? hifzToAyah.trim() : hasNezer && !hasHifz ? nezerToAyah.trim() : undefined,
+            ayahRange: hasHifz && !hasNezer ? hifzRange : hasNezer && !hasHifz ? nezerRange : undefined,
+          })
+        }
+        if (studyAreas.includes('qaida')) {
+          const range = `${qaidaFrom.trim()}–${qaidaTo.trim()}`
+          logs.push({
+            ...common,
+            studentId: student.id,
+            studyArea: 'qaida',
+            studyName: qaidaName.trim(),
+            lessonType: 'qaida',
+            rangeFrom: qaidaFrom.trim(),
+            rangeTo: qaidaTo.trim(),
+            pageOrLesson: range,
+          })
+        }
+        if (studyAreas.includes('kitab')) {
+          const range = `${kitabFrom.trim()}–${kitabTo.trim()}`
+          logs.push({
+            ...common,
+            studentId: student.id,
+            studyArea: 'kitab',
+            studyName: kitabName.trim(),
+            lessonType: 'kitab',
+            rangeFrom: kitabFrom.trim(),
+            rangeTo: kitabTo.trim(),
+            pageOrLesson: range,
+          })
+        }
+        return logs
+      }
+      await Promise.all(targets.flatMap((student) => createLogsForStudent(student)
+        .map((log) => rtdb.createMutabaahLog(student.id, log))))
 
       const newRows = await Promise.all(targets.map(async (student) => {
         const logs = await rtdb.getMutabaahLogs(student.id)
@@ -145,9 +231,20 @@ export default function AdminMutabaahPage() {
         )
       })
       setNotice(`Shared the daily performance with ${targets.length === 1 ? targets[0].name : `${targets.length} students`}.`)
-      setStudyName('')
-      setRangeFrom('')
-      setRangeTo('')
+      setQuranTracks([])
+      setHifzSurah('')
+      setHifzJuz('')
+      setHifzFromAyah('')
+      setHifzToAyah('')
+      setNezerSurah('')
+      setNezerFromAyah('')
+      setNezerToAyah('')
+      setQaidaName('')
+      setQaidaFrom('')
+      setQaidaTo('')
+      setKitabName('')
+      setKitabFrom('')
+      setKitabTo('')
       setRemark('')
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : 'Could not save the Mutaba’ah entry.')
@@ -207,33 +304,53 @@ export default function AdminMutabaahPage() {
                 <Label htmlFor="admin-mutabaah-date">Date</Label>
                 <Input id="admin-mutabaah-date" type="date" value={date} onChange={(event) => setDate(event.target.value)} required />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="admin-mutabaah-area">Study area</Label>
-                <select id="admin-mutabaah-area" value={studyArea} onChange={(event) => setStudyArea(event.target.value as MutabaahStudyArea)} className="h-10 w-full rounded-lg border border-white/10 bg-[#080f1b] px-3 text-sm text-white">
-                  <option value="quran">Quran</option>
-                  <option value="qaida">Qaida</option>
-                  <option value="kitab">Kitab</option>
-                </select>
-              </div>
-              {studyArea === 'quran' && <div className="space-y-2">
-                <Label htmlFor="admin-mutabaah-quran-type">Quran lesson</Label>
-                <select id="admin-mutabaah-quran-type" value={quranLessonType} onChange={(event) => setQuranLessonType(event.target.value as typeof quranLessonType)} className="h-10 w-full rounded-lg border border-white/10 bg-[#080f1b] px-3 text-sm text-white">
-                  <option value="sabaq">Sabaq · new memorization</option>
-                  <option value="tilawah">Tilawah · recitation</option>
-                </select>
-              </div>}
-              <div className="space-y-2">
-                <Label htmlFor="admin-mutabaah-study-name">{studyArea === 'quran' ? 'Surah name' : studyArea === 'qaida' ? 'Qaida name / level' : 'Kitab name'}</Label>
-                <Input id="admin-mutabaah-study-name" value={studyName} onChange={(event) => setStudyName(event.target.value)} required placeholder={studyArea === 'quran' ? 'e.g. Al-Mulk' : studyArea === 'qaida' ? 'e.g. Qaida Noorania' : 'e.g. Kitab al-Adab'} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="admin-mutabaah-from">{studyArea === 'quran' ? 'From ayah' : 'From page / lesson'}</Label>
-                <Input id="admin-mutabaah-from" value={rangeFrom} onChange={(event) => setRangeFrom(event.target.value)} required />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="admin-mutabaah-to">{studyArea === 'quran' ? 'To ayah' : 'To page / lesson'}</Label>
-                <Input id="admin-mutabaah-to" value={rangeTo} onChange={(event) => setRangeTo(event.target.value)} required />
-              </div>
+              <fieldset className="space-y-2 md:col-span-2">
+                <legend className="text-sm font-medium">What did the student study today? Select one or more.</legend>
+                <div className="grid grid-cols-3 gap-2">
+                  {([
+                    ['quran', 'Quran'],
+                    ['qaida', 'Qaida'],
+                    ['kitab', 'Kitab'],
+                  ] as const).map(([area, label]) => (
+                    <button key={area} type="button" aria-pressed={studyAreas.includes(area)} onClick={() => toggleStudyArea(area)} className={`min-h-11 rounded-xl border px-3 py-2 text-sm font-medium ${studyAreas.includes(area) ? 'border-cyan-300/60 bg-cyan-300/15 text-cyan-100' : 'border-white/10 bg-[#080f1b] text-slate-400 hover:border-white/25'}`}>{label}</button>
+                  ))}
+                </div>
+              </fieldset>
+              {studyAreas.includes('quran') && <fieldset className="grid gap-3 rounded-xl border border-white/10 p-3 md:col-span-2">
+                <legend className="px-1 text-sm font-medium">Quran lesson</legend>
+                <p className="text-xs text-slate-400">Choose Hifz, Nezer, or both. Hifz-only details are saved only when Hifz is selected.</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {([
+                    ['hifz', 'Hifz · memorization'],
+                    ['nezer', 'Nezer · reading'],
+                  ] as const).map(([track, label]) => (
+                    <button key={track} type="button" aria-pressed={quranTracks.includes(track)} onClick={() => toggleQuranTrack(track)} className={`min-h-11 rounded-xl border px-3 py-2 text-sm font-medium ${quranTracks.includes(track) ? 'border-violet-300/60 bg-violet-300/15 text-violet-100' : 'border-white/10 bg-[#080f1b] text-slate-400 hover:border-white/25'}`}>{label}</button>
+                  ))}
+                </div>
+                {quranTracks.includes('hifz') && <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-2"><Label htmlFor="admin-mutabaah-hifz-surah">Memorized Surah</Label><select id="admin-mutabaah-hifz-surah" value={hifzSurah} onChange={(event) => setHifzSurah(event.target.value)} required className="h-10 w-full rounded-lg border border-white/10 bg-[#080f1b] px-3 text-sm"><option value="">Select a Surah</option>{QURAN_SURAHS.map((name) => <option key={name} value={name}>{name}</option>)}</select></div>
+                  <div className="space-y-2"><Label htmlFor="admin-mutabaah-hifz-juz">Memorized Juz (optional)</Label><select id="admin-mutabaah-hifz-juz" value={hifzJuz} onChange={(event) => setHifzJuz(event.target.value)} className="h-10 w-full rounded-lg border border-white/10 bg-[#080f1b] px-3 text-sm"><option value="">Not specified</option>{Array.from({ length: 30 }, (_, index) => <option key={index + 1} value={`Juz ${index + 1}`}>Juz {index + 1}</option>)}</select></div>
+                  <div className="space-y-2"><Label htmlFor="admin-mutabaah-hifz-from">Hifz from Ayah</Label><Input id="admin-mutabaah-hifz-from" type="number" min="1" value={hifzFromAyah} onChange={(event) => setHifzFromAyah(event.target.value)} required placeholder="Starting ayah" /></div>
+                  <div className="space-y-2"><Label htmlFor="admin-mutabaah-hifz-to">Hifz to Ayah</Label><Input id="admin-mutabaah-hifz-to" type="number" min="1" value={hifzToAyah} onChange={(event) => setHifzToAyah(event.target.value)} required placeholder="Ending ayah" /></div>
+                </div>}
+                {quranTracks.includes('nezer') && <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-2"><Label htmlFor="admin-mutabaah-nezer-surah">Nezer Surah</Label><select id="admin-mutabaah-nezer-surah" value={nezerSurah} onChange={(event) => setNezerSurah(event.target.value)} required className="h-10 w-full rounded-lg border border-white/10 bg-[#080f1b] px-3 text-sm"><option value="">Select a Surah</option>{QURAN_SURAHS.map((name) => <option key={name} value={name}>{name}</option>)}</select></div>
+                  <div className="space-y-2"><Label htmlFor="admin-mutabaah-nezer-from">Nezer from Ayah</Label><Input id="admin-mutabaah-nezer-from" type="number" min="1" value={nezerFromAyah} onChange={(event) => setNezerFromAyah(event.target.value)} required placeholder="Starting ayah" /></div>
+                  <div className="space-y-2"><Label htmlFor="admin-mutabaah-nezer-to">Nezer to Ayah</Label><Input id="admin-mutabaah-nezer-to" type="number" min="1" value={nezerToAyah} onChange={(event) => setNezerToAyah(event.target.value)} required placeholder="Ending ayah" /></div>
+                </div>}
+              </fieldset>}
+              {studyAreas.includes('qaida') && <fieldset className="grid gap-3 rounded-xl border border-white/10 p-3 sm:grid-cols-2 md:col-span-2">
+                <legend className="px-1 text-sm font-medium">Qaida</legend>
+                <div className="space-y-2"><Label htmlFor="admin-mutabaah-qaida-name">Qaida / level</Label><Input id="admin-mutabaah-qaida-name" value={qaidaName} onChange={(event) => setQaidaName(event.target.value)} placeholder="e.g. Qaida Noorania" required /></div>
+                <div className="space-y-2"><Label htmlFor="admin-mutabaah-qaida-from">From lesson / page</Label><Input id="admin-mutabaah-qaida-from" value={qaidaFrom} onChange={(event) => setQaidaFrom(event.target.value)} required /></div>
+                <div className="space-y-2"><Label htmlFor="admin-mutabaah-qaida-to">To lesson / page</Label><Input id="admin-mutabaah-qaida-to" value={qaidaTo} onChange={(event) => setQaidaTo(event.target.value)} required /></div>
+              </fieldset>}
+              {studyAreas.includes('kitab') && <fieldset className="grid gap-3 rounded-xl border border-white/10 p-3 sm:grid-cols-2 md:col-span-2">
+                <legend className="px-1 text-sm font-medium">Kitab</legend>
+                <div className="space-y-2"><Label htmlFor="admin-mutabaah-kitab-name">Kitab name</Label><Input id="admin-mutabaah-kitab-name" value={kitabName} onChange={(event) => setKitabName(event.target.value)} placeholder="e.g. Kitab al-Adab" required /></div>
+                <div className="space-y-2"><Label htmlFor="admin-mutabaah-kitab-from">From page / lesson</Label><Input id="admin-mutabaah-kitab-from" value={kitabFrom} onChange={(event) => setKitabFrom(event.target.value)} required /></div>
+                <div className="space-y-2"><Label htmlFor="admin-mutabaah-kitab-to">To page / lesson</Label><Input id="admin-mutabaah-kitab-to" value={kitabTo} onChange={(event) => setKitabTo(event.target.value)} required /></div>
+              </fieldset>}
               <fieldset className="space-y-2 md:col-span-2">
                 <legend className="text-sm font-medium text-slate-200">Performance rating</legend>
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -343,6 +460,8 @@ export default function AdminMutabaahPage() {
                         <span className="text-sm text-slate-400">From–to: {range}</span>
                         <span className="rounded-full border border-white/10 px-2.5 py-1 text-xs text-slate-200">{EVALUATION_LABELS[log.evaluation]}</span>
                       </div>
+                      {log.hifzSurah && <p className="mt-2 text-sm text-violet-200">Hifz: {log.hifzSurah}{log.hifzJuz ? ` · ${log.hifzJuz}` : ''}{log.hifzFromAyah && log.hifzToAyah ? ` · Ayah ${log.hifzFromAyah}–${log.hifzToAyah}` : ''}</p>}
+                      {log.nezerSurah && <p className="mt-1 text-sm text-cyan-200">Nezer: {log.nezerSurah}{log.nezerFromAyah && log.nezerToAyah ? ` · Ayah ${log.nezerFromAyah}–${log.nezerToAyah}` : ''}</p>}
                       {log.homework && <p className="mt-2 text-sm text-slate-300">Homework: {log.homework}</p>}
                       {log.remark && <p className="mt-2 text-sm text-slate-300">{log.remark}</p>}
                     </article>

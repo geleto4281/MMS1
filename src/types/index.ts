@@ -76,6 +76,14 @@ export interface MutabaahLog {
   lessonType: 'sabaq' | 'tilawah' | 'qaida' | 'kitab'
   studyArea?: MutabaahStudyArea
   studyName?: string
+  quranTracks?: ('hifz' | 'nezer')[]
+  hifzSurah?: string
+  hifzJuz?: string
+  hifzFromAyah?: string
+  hifzToAyah?: string
+  nezerSurah?: string
+  nezerFromAyah?: string
+  nezerToAyah?: string
   rangeFrom?: string
   rangeTo?: string
   surah?: string
