@@ -338,6 +338,10 @@ export async function createMutabaahLog(studentId: string, data: Omit<MutabaahLo
   await set(ref(db, `communicationBook/${studentId}/${id}`), { ...data, id })
 }
 
+export async function removeMutabaahVoiceNote(studentId: string, logId: string): Promise<void> {
+  await update(ref(db, `communicationBook/${studentId}/${logId}`), { voiceNote: null })
+}
+
 export async function acknowledgeMutabaah(
   studentId: string,
   logId: string,
@@ -793,6 +797,7 @@ export const rtdb = {
   createFeeRecord,
   getMutabaahLogs,
   createMutabaahLog,
+  removeMutabaahVoiceNote,
   acknowledgeMutabaah,
   addMutabaahReply,
   getLeaveRequests,

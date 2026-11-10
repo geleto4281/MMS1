@@ -2,7 +2,7 @@
 
 import { LocalizedDashboardContent } from '@/components/LocalizedDashboardContent'
 import { useEffect, useMemo, useState } from 'react'
-import { BookOpen, CheckCircle2, Loader2, Send } from 'lucide-react'
+import { BookOpen, CheckCircle2, Loader2, Send, Trash2 } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -55,6 +55,7 @@ export default function AdminMutabaahPage() {
   const [remark, setRemark] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [deletingAudio, setDeletingAudio] = useState('')
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
 
@@ -262,6 +263,24 @@ export default function AdminMutabaahPage() {
   const todayString = new Date().toISOString().slice(0, 10)
   const todayCount = filteredEntries.filter(({ log }) => log.date === todayString).length
 
+  const deleteVoiceNote = async (entry: AdminMutabaahEntry) => {
+    if (!entry.log.voiceNote || !window.confirm('Delete this voice note? Parents will no longer be able to play it.')) return
+    setDeletingAudio(entry.log.id)
+    setError('')
+    try {
+      await rtdb.removeMutabaahVoiceNote(entry.student.id, entry.log.id)
+      setEntries((current) => current.map((item) =>
+        item.student.id === entry.student.id && item.log.id === entry.log.id
+          ? { ...item, log: { ...item.log, voiceNote: undefined } }
+          : item
+      ))
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : 'Could not delete the voice note.')
+    } finally {
+      setDeletingAudio('')
+    }
+  }
+
   return (
     <LocalizedDashboardContent>
       <div className="mms-dashboard space-y-6">
@@ -464,6 +483,7 @@ export default function AdminMutabaahPage() {
                       {log.nezerSurah && <p className="mt-1 text-sm text-cyan-200">Nezer: {log.nezerSurah}{log.nezerFromAyah && log.nezerToAyah ? ` · Ayah ${log.nezerFromAyah}–${log.nezerToAyah}` : ''}</p>}
                       {log.homework && <p className="mt-2 text-sm text-slate-300">Homework: {log.homework}</p>}
                       {log.remark && <p className="mt-2 text-sm text-slate-300">{log.remark}</p>}
+                      {log.voiceNote && <div className="mt-3 flex flex-wrap items-center gap-2"><audio controls src={log.voiceNote} className="h-9 max-w-full" /><Button type="button" size="sm" variant="outline" disabled={deletingAudio === log.id} onClick={() => void deleteVoiceNote({ log, student, className })}><Trash2 className="mr-2 h-4 w-4" />{deletingAudio === log.id ? 'Deleting…' : 'Delete audio'}</Button></div>}
                     </article>
                   )
                 })}

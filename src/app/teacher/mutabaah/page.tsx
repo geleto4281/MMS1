@@ -2,7 +2,7 @@
 
 import { LocalizedDashboardContent } from '@/components/LocalizedDashboardContent'
 import { useEffect, useMemo, useState } from 'react'
-import { BookOpen, CheckCircle2, Loader2, MessageCircle, Send } from 'lucide-react'
+import { BookOpen, CheckCircle2, Loader2, MessageCircle, Send, Trash2 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { rtdb } from '@/lib/database'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -53,8 +53,6 @@ export default function MutabaahTeacherPage() {
   const [kitabName, setKitabName] = useState('')
   const [kitabFrom, setKitabFrom] = useState('')
   const [kitabTo, setKitabTo] = useState('')
-  const [sabqi, setSabqi] = useState('')
-  const [manzil, setManzil] = useState('')
   const [homework, setHomework] = useState('')
   const [evaluation, setEvaluation] = useState<MutabaahEvaluation>('good')
   const [tags, setTags] = useState<string[]>([])
@@ -65,6 +63,7 @@ export default function MutabaahTeacherPage() {
   const [notice, setNotice] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [deletingAudio, setDeletingAudio] = useState('')
 
   useEffect(() => {
     if (!user) return
@@ -165,13 +164,10 @@ export default function MutabaahTeacherPage() {
         date,
         teacherId: user.uid,
         teacherName: user.name,
-        sabqi: sabqi.trim() || undefined,
-        manzil: manzil.trim() || undefined,
         homework: homework.trim() || undefined,
         evaluation,
         tags,
         remark: remark.trim() || undefined,
-        voiceNote: voiceNote || undefined,
         createdAt: new Date().toISOString(),
       }
       const createLogsForStudent = (student: Student) => {
@@ -228,6 +224,7 @@ export default function MutabaahTeacherPage() {
             pageOrLesson: range,
           })
         }
+        if (logs.length && voiceNote) logs[0].voiceNote = voiceNote
         return logs
       }
       await Promise.all(targets.flatMap((student) => createLogsForStudent(student)
@@ -249,8 +246,6 @@ export default function MutabaahTeacherPage() {
       setKitabName('')
       setKitabFrom('')
       setKitabTo('')
-      setSabqi('')
-      setManzil('')
       setHomework('')
       setRemark('')
       setVoiceNote('')
@@ -259,6 +254,20 @@ export default function MutabaahTeacherPage() {
       setError(e instanceof Error ? e.message : 'Could not save the daily log.')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const deleteVoiceNote = async (log: MutabaahLog) => {
+    if (!log.voiceNote || !window.confirm('Delete this voice note? Parents will no longer be able to play it.')) return
+    setDeletingAudio(log.id)
+    setError('')
+    try {
+      await rtdb.removeMutabaahVoiceNote(log.studentId, log.id)
+      setLogs((current) => current.map((item) => item.id === log.id ? { ...item, voiceNote: undefined } : item))
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not delete the voice note.')
+    } finally {
+      setDeletingAudio('')
     }
   }
 
@@ -353,8 +362,6 @@ export default function MutabaahTeacherPage() {
                 <div className="space-y-2"><Label htmlFor="mut-kitab-from">From page / lesson</Label><Input id="mut-kitab-from" value={kitabFrom} onChange={(event) => setKitabFrom(event.target.value)} required /></div>
                 <div className="space-y-2"><Label htmlFor="mut-kitab-to">To page / lesson</Label><Input id="mut-kitab-to" value={kitabTo} onChange={(event) => setKitabTo(event.target.value)} required /></div>
               </fieldset>}
-              <div className="space-y-2"><Label htmlFor="mut-sabqi">Recent revision · Sabqi</Label><Input id="mut-sabqi" value={sabqi} onChange={(e) => setSabqi(e.target.value)} placeholder="Juz or surah range" /></div>
-              <div className="space-y-2"><Label htmlFor="mut-manzil">Old revision · Manzil / Muraja’ah</Label><Input id="mut-manzil" value={manzil} onChange={(e) => setManzil(e.target.value)} placeholder="Juz or surah range" /></div>
               <div className="space-y-2"><Label htmlFor="mut-homework">Homework / class note (optional)</Label><Input id="mut-homework" value={homework} onChange={(e) => setHomework(e.target.value)} placeholder="Short homework or class note" /></div>
               <fieldset className="space-y-2 md:col-span-2"><legend className="text-sm font-medium">Performance rating</legend><div className="grid grid-cols-2 gap-2 sm:grid-cols-4">{EVALUATIONS.map((item) => <button key={item.value} type="button" aria-pressed={evaluation === item.value} onClick={() => setEvaluation(item.value)} className={`min-h-11 rounded-xl border px-3 py-2 text-sm font-medium transition-colors ${evaluation === item.value ? 'border-cyan-300/60 bg-cyan-300/15 text-cyan-100' : 'border-white/10 bg-[#080f1b] text-slate-400 hover:border-white/25'}`}>{item.label}</button>)}</div></fieldset>
               <div className="space-y-2 md:col-span-2"><Label htmlFor="mut-remark">Teacher remark</Label><Input id="mut-remark" value={remark} onChange={(e) => setRemark(e.target.value)} placeholder="Short note for the parent" /></div>
@@ -376,7 +383,7 @@ export default function MutabaahTeacherPage() {
                 {(log.tags || []).length > 0 && <div className="mt-2 flex flex-wrap gap-1.5">{(log.tags || []).map((tag) => <span key={tag} className="rounded-full bg-cyan-300/10 px-2 py-1 text-xs text-cyan-100">{tag}</span>)}</div>}
                 {log.homework && <p className="mt-2 text-sm text-slate-300">Homework: {log.homework}</p>}
                 {log.remark && <p className="mt-2 text-sm text-slate-300">{log.remark}</p>}
-                {log.voiceNote && <audio controls src={log.voiceNote} className="mt-3 h-9 max-w-full" />}
+                {log.voiceNote && <div className="mt-3 flex flex-wrap items-center gap-2"><audio controls src={log.voiceNote} className="h-9 max-w-full" /><Button type="button" size="sm" variant="outline" disabled={deletingAudio === log.id} onClick={() => void deleteVoiceNote(log)}><Trash2 className="mr-2 h-4 w-4" />{deletingAudio === log.id ? 'Deleting…' : 'Delete audio'}</Button></div>}
                 {replies.map((reply) => <p key={reply.id} className="mt-2 rounded-lg bg-white/5 p-2 text-sm text-slate-300"><span className="font-medium text-cyan-200">{reply.authorName}:</span> {reply.message}{reply.voiceNote && <audio controls src={reply.voiceNote} className="mt-2 h-8 max-w-full" />}</p>)}
                 <div className="mt-3 flex gap-2"><Input value={replyDrafts[log.id] || ''} onChange={(e) => setReplyDrafts((drafts) => ({ ...drafts, [log.id]: e.target.value }))} placeholder="Reply to this parent…" /><Button type="button" variant="outline" aria-label="Send reply" disabled={!(replyDrafts[log.id] || '').trim()} onClick={() => void sendReply(log)}><MessageCircle className="h-4 w-4" /></Button></div>
               </article>
