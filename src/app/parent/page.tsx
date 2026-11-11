@@ -14,8 +14,9 @@ import { DashboardTopBar } from '@/components/DashboardTopBar'
 import { AnnouncementBell } from '@/components/AnnouncementBell'
 import { usePreferences } from '@/context/PreferencesContext'
 import { LocalizedDashboardContent } from '@/components/LocalizedDashboardContent'
-import { ETHIOPIAN_MONTHS, ethiopianDateLabel } from '@/lib/ethiopianDate'
-import type { Attendance, Class, FeeRecord, MutabaahEvaluation, MutabaahLog, ParentExamResult, Student } from '@/types'
+import { ETHIOPIAN_MONTHS, ethiopianDateLabel, toEthiopianParts } from '@/lib/ethiopianDate'
+import { FeeReceipt } from '@/components/FeeReceipt'
+import type { Attendance, Class, FeePaymentSubmission, FeeRecord, MutabaahEvaluation, MutabaahLog, ParentExamResult, Student } from '@/types'
 
 const ETHIOPIAN_MONTH_NAMES = [
   'Meskerem', 'Tikimt', 'Hidar', 'Tahsas', 'Tir', 'Yekatit', 'Megabit',
@@ -32,12 +33,13 @@ const EVALUATION_LABELS: Record<MutabaahEvaluation, string> = {
 type ChildData = {
   attendance: Attendance[]
   fees: FeeRecord[]
+  feeSubmissions: FeePaymentSubmission[]
   logs: MutabaahLog[]
   exams: ParentExamResult[]
   classInfo: Class | null
 }
 
-const EMPTY: ChildData = { attendance: [], fees: [], logs: [], exams: [], classInfo: null }
+const EMPTY: ChildData = { attendance: [], fees: [], feeSubmissions: [], logs: [], exams: [], classInfo: null }
 
 export default function ParentPortalPage() {
   const { user } = useAuth()
@@ -47,14 +49,28 @@ export default function ParentPortalPage() {
   const [childData, setChildData] = useState<ChildData>(EMPTY)
   const [loadingChildren, setLoadingChildren] = useState(true)
   const [loadingData, setLoadingData] = useState(false)
+  const [schoolName, setSchoolName] = useState('')
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [leaveDate, setLeaveDate] = useState(() => new Date().toISOString().slice(0, 10))
   const [leaveReason, setLeaveReason] = useState('Sickness')
   const [leaveNote, setLeaveNote] = useState('')
+  const [paymentAmount, setPaymentAmount] = useState('')
+  const [paymentMonth, setPaymentMonth] = useState(() => {
+    const parts = toEthiopianParts(new Date().toISOString().slice(0, 10))
+    return parts ? String(parts.month) : ''
+  })
+  const [paymentYear, setPaymentYear] = useState(() => {
+    const parts = toEthiopianParts(new Date().toISOString().slice(0, 10))
+    return parts ? String(parts.year) : ''
+  })
+  const [paymentMethod, setPaymentMethod] = useState<NonNullable<FeeRecord['paymentMethod']>>('CBE')
+  const [paymentReference, setPaymentReference] = useState('')
+  const [paymentNote, setPaymentNote] = useState('')
   const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({})
   const [replyVoices, setReplyVoices] = useState<Record<string, string>>({})
   const [savingLeave, setSavingLeave] = useState(false)
+  const [savingPayment, setSavingPayment] = useState(false)
   const [sendingReply, setSendingReply] = useState<string | null>(null)
 
   const selectedChild = children.find((child) => child.id === selectedId) || null
@@ -62,6 +78,9 @@ export default function ParentPortalPage() {
   useEffect(() => {
     if (!user) return
     let active = true
+    rtdb.getSchoolName()
+      .then((name) => { if (active) setSchoolName(name) })
+      .catch((e) => { if (active) setError(e instanceof Error ? e.message : 'Could not load the institution name.') })
     rtdb.getParentStudentIds(user.uid)
       .then(async (ids) => {
         const linked = (await Promise.all(ids.map((id) => rtdb.getStudent(id))))
@@ -87,15 +106,17 @@ export default function ParentPortalPage() {
     Promise.all([
       rtdb.getAttendanceByStudent(selectedChild.id),
       rtdb.getFeeRecords(selectedChild.id),
+      rtdb.getFeePaymentSubmissions(selectedChild.id),
       rtdb.getMutabaahLogs(selectedChild.id),
       rtdb.getParentExamResults(selectedChild.id),
       rtdb.getClass(selectedChild.classId),
     ])
-      .then(([attendance, fees, logs, exams, classInfo]) => {
+      .then(([attendance, fees, feeSubmissions, logs, exams, classInfo]) => {
         if (!active) return
         setChildData({
           attendance: attendance.sort((a, b) => b.date.localeCompare(a.date)),
           fees,
+          feeSubmissions,
           logs,
           exams,
           classInfo,
@@ -105,6 +126,20 @@ export default function ParentPortalPage() {
       .finally(() => { if (active) setLoadingData(false) })
     return () => { active = false }
   }, [selectedChild])
+
+  useEffect(() => {
+    if (!selectedId) return
+    const unsubscribeFees = rtdb.subscribeToFeeRecords(selectedId, (fees) => {
+      setChildData((current) => ({ ...current, fees }))
+    })
+    const unsubscribeSubmissions = rtdb.subscribeToFeePaymentSubmissions(selectedId, (feeSubmissions) => {
+      setChildData((current) => ({ ...current, feeSubmissions }))
+    })
+    return () => {
+      unsubscribeFees()
+      unsubscribeSubmissions()
+    }
+  }, [selectedId])
 
   const refreshLogs = useCallback(async (studentId: string) => {
     const logs = await rtdb.getMutabaahLogs(studentId)
@@ -151,6 +186,47 @@ export default function ParentPortalPage() {
       setError(e instanceof Error ? e.message : 'Could not send this leave notice.')
     } finally {
       setSavingLeave(false)
+    }
+  }
+
+  const submitPaymentNotification = async (event: React.FormEvent) => {
+    event.preventDefault()
+    if (!user || !selectedChild) return
+    const amount = Number(paymentAmount)
+    const month = Number(paymentMonth)
+    const year = Number(paymentYear)
+    if (!Number.isFinite(amount) || amount <= 0 ||
+      !Number.isInteger(month) || month < 1 || month > 13 ||
+      !Number.isInteger(year) || year < 1) {
+      setError(t('Enter a valid payment amount and Ethiopian billing period.'))
+      return
+    }
+    setSavingPayment(true)
+    setError('')
+    setNotice('')
+    try {
+      await rtdb.submitFeePayment(selectedChild.id, {
+        parentId: user.uid,
+        parentName: user.name,
+        amount,
+        ethiopianMonth: month,
+        ethiopianYear: year,
+        paymentMethod,
+        referenceNumber: paymentReference.trim(),
+        note: paymentNote.trim() || undefined,
+        status: 'pending',
+        createdAt: new Date().toISOString(),
+      })
+      const feeSubmissions = await rtdb.getFeePaymentSubmissions(selectedChild.id)
+      setChildData((current) => ({ ...current, feeSubmissions }))
+      setPaymentAmount('')
+      setPaymentReference('')
+      setPaymentNote('')
+      setNotice(t('Payment notification sent. The balance will change after admin approval.'))
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t('Could not send this payment notification.'))
+    } finally {
+      setSavingPayment(false)
     }
   }
 
@@ -260,7 +336,30 @@ export default function ParentPortalPage() {
               </div>
               <CardDescription>{t('Charges, payments, waivers, and the balance after each transaction for this child.')}</CardDescription>
             </CardHeader>
-            <CardContent>{feeLedger.entries.length ? <div className="overflow-x-auto"><table className="w-full min-w-[980px] text-left text-sm"><thead className="text-slate-400"><tr><th className="p-3">{t('Date (Gregorian)')}</th><th className="p-3">{t('Date (Ethiopian)')}</th><th className="p-3">{t('Fee period')}</th><th className="p-3">{t('Description')}</th><th className="p-3">{t('Type')}</th><th className="p-3">{t('Payment info')}</th><th className="p-3 text-right">{t('Amount')}</th><th className="p-3 text-right">{t('Running Balance')}</th></tr></thead><tbody>{feeLedger.entries.map((fee) => <tr key={fee.id} className="border-t border-white/10"><td className="p-3">{fee.date}</td><td className="p-3">{ethiopianDateLabel(fee.date) || '—'}</td><td className="p-3">{fee.ethiopianMonth && fee.ethiopianYear ? `${ETHIOPIAN_MONTH_NAMES[fee.ethiopianMonth - 1] || ETHIOPIAN_MONTHS[fee.ethiopianMonth - 1]} ${fee.ethiopianYear}` : '—'}</td><td className="p-3">{fee.description}</td><td className="p-3">{t(fee.kind)}</td><td className="p-3">{fee.paymentMethod || fee.receiptNumber ? `${fee.paymentMethod || ''}${fee.receiptNumber ? ` · ${fee.receiptNumber}` : ''}` : '—'}</td><td className={`p-3 text-right font-medium ${fee.kind === 'charge' ? 'text-amber-200' : 'text-emerald-300'}`}>{fee.kind === 'charge' ? '' : '−'}{formatAmount(fee.amount)}</td><td className={`p-3 text-right font-medium ${fee.runningBalance > 0 ? 'text-amber-200' : fee.runningBalance < 0 ? 'text-violet-200' : 'text-emerald-300'}`}>{formatAmount(fee.runningBalance)}</td></tr>)}</tbody></table></div> : <p className="text-sm text-slate-400">{t('No fee records have been added.')}</p>}</CardContent>
+            <CardContent className="space-y-5">
+              <form onSubmit={submitPaymentNotification} className="rounded-xl border border-white/10 bg-[#080f1b] p-4">
+                <h3 className="font-semibold text-white">{t('Notify the Madrasah about a payment')}</h3>
+                <p className="mt-1 text-xs text-slate-400">{t('Your notice will not change the official balance until an administrator approves it.')}</p>
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-2"><Label htmlFor="parent-payment-amount">{t('Amount paid')}</Label><Input id="parent-payment-amount" type="number" min="0.01" step="0.01" value={paymentAmount} onChange={(event) => setPaymentAmount(event.target.value)} required /></div>
+                  <div className="space-y-2"><Label htmlFor="parent-payment-method">{t('Payment method')}</Label><select id="parent-payment-method" value={paymentMethod} onChange={(event) => setPaymentMethod(event.target.value as NonNullable<FeeRecord['paymentMethod']>)} className="h-10 w-full rounded-lg border border-white/10 bg-[#0c1421] px-3 text-sm text-slate-100"><option value="CBE">CBE</option><option value="TELEBIRR">Telebirr</option><option value="ABYSSINIA">Bank of Abyssinia (BOA)</option><option value="AWASH">Awash</option><option value="CASH">Cash</option></select></div>
+                  <div className="space-y-2"><Label htmlFor="parent-payment-month">{t('Ethiopian billing month')}</Label><select id="parent-payment-month" value={paymentMonth} onChange={(event) => setPaymentMonth(event.target.value)} required className="h-10 w-full rounded-lg border border-white/10 bg-[#0c1421] px-3 text-sm text-slate-100"><option value="">{t('Select month')}</option>{ETHIOPIAN_MONTHS.map((month, index) => <option key={month} value={index + 1}>{ETHIOPIAN_MONTH_NAMES[index]} · {month}</option>)}</select></div>
+                  <div className="space-y-2"><Label htmlFor="parent-payment-year">{t('Ethiopian billing year')}</Label><Input id="parent-payment-year" type="number" min="1" step="1" value={paymentYear} onChange={(event) => setPaymentYear(event.target.value)} required /></div>
+                  <div className="space-y-2 sm:col-span-2"><Label htmlFor="parent-payment-reference">{t('Bank / transaction reference')}</Label><Input id="parent-payment-reference" value={paymentReference} onChange={(event) => setPaymentReference(event.target.value)} placeholder={t('Reference number, if available')} /></div>
+                  <div className="space-y-2 sm:col-span-2"><Label htmlFor="parent-payment-note">{t('Note (optional)')}</Label><Input id="parent-payment-note" value={paymentNote} onChange={(event) => setPaymentNote(event.target.value)} /></div>
+                  <div className="sm:col-span-2"><Button type="submit" disabled={savingPayment} className="bg-cyan-400 text-slate-950 hover:bg-cyan-300">{savingPayment ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wallet className="mr-2 h-4 w-4" />}{savingPayment ? t('Sending…') : t('Submit payment notification')}</Button></div>
+                </div>
+              </form>
+              {childData.feeSubmissions.length > 0 && <section className="space-y-2">
+                <h3 className="font-semibold text-white">{t('Your payment notifications')}</h3>
+                {childData.feeSubmissions.map((submission) => <article key={submission.id} className="rounded-lg border border-white/10 p-3 text-sm">
+                  <div className="flex flex-wrap items-center justify-between gap-2"><p className="font-medium text-slate-100">{formatAmount(submission.amount)} · {ETHIOPIAN_MONTH_NAMES[submission.ethiopianMonth - 1]} {submission.ethiopianYear} · {submission.paymentMethod}</p><span className={`rounded-full px-2.5 py-1 text-xs font-medium ${submission.status === 'approved' ? 'bg-emerald-400/10 text-emerald-200' : submission.status === 'rejected' ? 'bg-rose-400/10 text-rose-200' : 'bg-amber-300/10 text-amber-200'}`}>{t(submission.status)}</span></div>
+                  {submission.referenceNumber && <p className="mt-1 break-all text-slate-400">{t('Reference')}: {submission.referenceNumber}</p>}
+                  {submission.status === 'rejected' && submission.rejectionReason && <p className="mt-1 text-rose-200">{t('Reason')}: {submission.rejectionReason}</p>}
+                </article>)}
+              </section>}
+              {feeLedger.entries.length ? <div className="overflow-x-auto"><table className="w-full min-w-[1120px] text-left text-sm"><thead className="text-slate-400"><tr><th className="p-3">{t('Date (Gregorian)')}</th><th className="p-3">{t('Date (Ethiopian)')}</th><th className="p-3">{t('Fee period')}</th><th className="p-3">{t('Description')}</th><th className="p-3">{t('Type')}</th><th className="p-3">{t('Payment info')}</th><th className="p-3 text-right">{t('Amount')}</th><th className="p-3 text-right">{t('Running Balance')}</th><th className="p-3">{t('Receipt')}</th></tr></thead><tbody>{feeLedger.entries.map((fee) => <tr key={fee.id} className="border-t border-white/10"><td className="p-3">{fee.date}</td><td className="p-3">{ethiopianDateLabel(fee.date) || '—'}</td><td className="p-3">{fee.ethiopianMonth && fee.ethiopianYear ? `${ETHIOPIAN_MONTH_NAMES[fee.ethiopianMonth - 1] || ETHIOPIAN_MONTHS[fee.ethiopianMonth - 1]} ${fee.ethiopianYear}` : '—'}</td><td className="p-3">{fee.description}</td><td className="p-3">{t(fee.kind)}</td><td className="p-3">{fee.paymentMethod || fee.receiptNumber ? `${fee.paymentMethod || ''}${fee.receiptNumber ? ` · ${fee.receiptNumber}` : ''}` : '—'}</td><td className={`p-3 text-right font-medium ${fee.kind === 'charge' ? 'text-amber-200' : 'text-emerald-300'}`}>{fee.kind === 'charge' ? '' : '−'}{formatAmount(fee.amount)}</td><td className={`p-3 text-right font-medium ${fee.runningBalance > 0 ? 'text-amber-200' : fee.runningBalance < 0 ? 'text-violet-200' : 'text-emerald-300'}`}>{formatAmount(fee.runningBalance)}</td><td className="p-3">{fee.kind === 'payment' && selectedChild ? <FeeReceipt record={fee} student={selectedChild} className={childData.classInfo?.name || selectedChild.className || ''} status={feeLedger.status} schoolName={schoolName} /> : '—'}</td></tr>)}</tbody></table></div> : <p className="text-sm text-slate-400">{t('No fee records have been added.')}</p>}
+            </CardContent>
           </Card>
           <Card id="communication-book" className="mms-parent-card scroll-mt-24 border-white/10 bg-[#0c1421]">
             <CardHeader><CardTitle className="text-white">{t('Digital communication book')}</CardTitle><CardDescription>{t('Read the daily update, sign after home revision, and reply to the Ustaz.')}</CardDescription></CardHeader>

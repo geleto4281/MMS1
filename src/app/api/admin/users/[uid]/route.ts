@@ -21,9 +21,7 @@ async function verifyAdmin(request: Request) {
 /**
  * PATCH /api/admin/users/[uid]
  *
- * Updates the classes assigned to an existing teacher. Class records and user
- * profiles are updated together so moving a teacher to a new grade does not
- * leave stale assignments behind.
+ * Updates a user profile, teacher class assignments, or parent-student links.
  */
 export async function PATCH(
   request: Request,
@@ -32,14 +30,23 @@ export async function PATCH(
   const { uid } = await params
   try {
     const { db, callerUid } = await verifyAdmin(request)
-    const body = await request.json()
+    let body: Record<string, unknown>
+    try {
+      body = await request.json()
+    } catch {
+      return NextResponse.json({ ok: false, error: 'Invalid JSON body.' }, { status: 400 })
+    }
     const hasParentStudentIds = Array.isArray(body?.studentIds)
-    const assignedClassIds = Array.isArray(body?.assignedClassIds)
-      ? [...new Set(body.assignedClassIds.filter((id: unknown): id is string => typeof id === 'string' && id.length > 0))]
+    const hasAssignedClassIds = Array.isArray(body?.assignedClassIds)
+    const assignedClassIds = hasAssignedClassIds
+      ? [...new Set((body.assignedClassIds as unknown[]).filter((id): id is string => typeof id === 'string' && id.length > 0))]
+      : null
+    const profile = body.profile && typeof body.profile === 'object'
+      ? body.profile as Record<string, unknown>
       : null
 
-    if (!assignedClassIds && !hasParentStudentIds) {
-      return NextResponse.json({ ok: false, error: 'Provide assignedClassIds or studentIds.' }, { status: 400 })
+    if (!assignedClassIds && !hasParentStudentIds && !profile) {
+      return NextResponse.json({ ok: false, error: 'Provide profile data, assignedClassIds, or studentIds.' }, { status: 400 })
     }
 
     const [userSnap, classesSnap, usersSnap] = await Promise.all([
@@ -53,7 +60,7 @@ export async function PATCH(
     }
     if (user.role === 'parent' && hasParentStudentIds) {
       const selectedStudentIds: string[] = [...new Set<string>(
-        body.studentIds.filter((id: unknown): id is string => typeof id === 'string' && id.length > 0)
+        (body.studentIds as unknown[]).filter((id): id is string => typeof id === 'string' && id.length > 0)
       )]
       if (selectedStudentIds.length === 0) {
         return NextResponse.json({ ok: false, error: 'Choose at least one active student to link.' }, { status: 400 })
@@ -140,46 +147,108 @@ export async function PATCH(
       return NextResponse.json({ ok: true })
     }
 
-    if (user.role !== 'teacher') {
-      return NextResponse.json({ ok: false, error: 'Only teacher class assignments or parent-student links can be edited.' }, { status: 400 })
+    if (hasParentStudentIds) {
+      return NextResponse.json({ ok: false, error: 'Only parent accounts can be linked to students.' }, { status: 400 })
     }
 
-    const selected = new Set(assignedClassIds)
+    const nextRole = profile?.role === undefined ? user.role : profile.role
+    if (user.role === 'parent' ? nextRole !== 'parent' : !['admin', 'teacher'].includes(String(nextRole))) {
+      return NextResponse.json({ ok: false, error: 'Parent accounts must be managed in Parents; staff roles must be admin or teacher.' }, { status: 400 })
+    }
+    if (assignedClassIds && nextRole !== 'teacher') {
+      return NextResponse.json({ ok: false, error: 'Only teacher accounts can be assigned to classes.' }, { status: 400 })
+    }
+
+    const nextName = profile?.name === undefined ? user.name : String(profile.name).trim()
+    const nextEmail = profile?.email === undefined ? user.email : String(profile.email).trim().toLowerCase()
+    const nextPhone = profile?.phone === undefined ? (user.phone || '') : String(profile.phone).trim()
+    if (!nextName || !nextEmail || !nextEmail.includes('@')) {
+      return NextResponse.json({ ok: false, error: 'Enter a valid name and email address.' }, { status: 400 })
+    }
+
+    if (user.role === 'admin' && nextRole !== 'admin') {
+      let activeAdminCount = 0
+      usersSnap.forEach((child) => {
+        if (child.val()?.role === 'admin' && child.val()?.status !== 'inactive') activeAdminCount++
+      })
+      if (activeAdminCount <= 1) {
+        return NextResponse.json({ ok: false, error: 'The last active admin cannot be changed to a teacher.' }, { status: 400 })
+      }
+    }
+
+    const now = new Date().toISOString()
     const updates: Record<string, unknown> = {
-      [`users/${uid}/assignedClassIds`]: assignedClassIds,
-      [`users/${uid}/updatedAt`]: new Date().toISOString(),
+      [`users/${uid}/name`]: nextName,
+      [`users/${uid}/email`]: nextEmail,
+      [`users/${uid}/phone`]: nextPhone || null,
+      [`users/${uid}/role`]: nextRole,
+      [`users/${uid}/updatedAt`]: now,
     }
-    const assignedByUser = new Map<string, string[]>()
 
-    usersSnap.forEach((child) => {
-      const value = child.val()
-      if (value?.role === 'teacher' && Array.isArray(value.assignedClassIds)) {
-        assignedByUser.set(child.key as string, value.assignedClassIds)
+    const authUpdates: { displayName: string; email?: string } = { displayName: nextName }
+    if (nextEmail !== user.email) authUpdates.email = nextEmail
+    await getAuth(getAdminApp()).updateUser(uid, authUpdates)
+
+    if (profile?.role !== undefined && nextRole !== user.role) {
+      if (nextRole === 'admin') {
+        updates[`users/${uid}/assignedClassIds`] = null
+      } else {
+        updates[`users/${uid}/assignedClassIds`] = assignedClassIds || null
       }
-    })
+    }
 
-    classesSnap.forEach((child) => {
-      const classId = child.key as string
-      const value = child.val()
-      if (!value) return
+    if (user.role === 'parent') {
+      const linksSnap = await db.ref(`parentStudentLinks/${uid}`).get()
+      linksSnap.forEach((link) => {
+        if (link.val() !== true) return
+        const studentId = link.key as string
+        updates[`students/${studentId}/parentName`] = nextName
+        updates[`students/${studentId}/parentEmail`] = nextEmail
+        updates[`students/${studentId}/parentPhone`] = nextPhone || null
+      })
+    }
 
-      if (selected.has(classId)) {
-        updates[`classes/${classId}/teacherId`] = uid
-        updates[`classes/${classId}/teacherName`] = user.name
-      } else if (value.teacherId === uid) {
-        updates[`classes/${classId}/teacherId`] = null
-        updates[`classes/${classId}/teacherName`] = null
-      }
+    if (assignedClassIds || user.role === 'teacher' || nextRole === 'teacher') {
+      const selected = new Set(assignedClassIds || [])
+      const assignedByUser = new Map<string, string[]>()
+      usersSnap.forEach((child) => {
+        const value = child.val()
+        if (value?.role === 'teacher' && Array.isArray(value.assignedClassIds)) {
+          assignedByUser.set(child.key as string, value.assignedClassIds)
+        }
+      })
 
-      if (selected.has(classId)) {
-        assignedByUser.forEach((ids, otherUid) => {
-          if (otherUid !== uid && ids.includes(classId)) {
-            updates[`users/${otherUid}/assignedClassIds`] = ids.filter((id) => id !== classId)
-            updates[`users/${otherUid}/updatedAt`] = new Date().toISOString()
+      classesSnap.forEach((child) => {
+        const classId = child.key as string
+        const value = child.val()
+        if (!value) return
+
+        if (nextRole === 'teacher' && assignedClassIds && selected.has(classId)) {
+          updates[`classes/${classId}/teacherId`] = uid
+          updates[`classes/${classId}/teacherName`] = nextName
+        } else if (value.teacherId === uid) {
+          if (nextRole === 'teacher' && !assignedClassIds) {
+            updates[`classes/${classId}/teacherName`] = nextName
+          } else {
+            updates[`classes/${classId}/teacherId`] = null
+            updates[`classes/${classId}/teacherName`] = null
           }
-        })
+        }
+
+        if (nextRole === 'teacher' && assignedClassIds && selected.has(classId)) {
+          assignedByUser.forEach((ids, otherUid) => {
+            if (otherUid !== uid && ids.includes(classId)) {
+              updates[`users/${otherUid}/assignedClassIds`] = ids.filter((id) => id !== classId)
+              updates[`users/${otherUid}/updatedAt`] = now
+            }
+          })
+        }
+      })
+
+      if (assignedClassIds) {
+        updates[`users/${uid}/assignedClassIds`] = assignedClassIds
       }
-    })
+    }
 
     await db.ref().update(updates)
     await db.ref('audit/audit_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8)).set({
@@ -187,13 +256,13 @@ export async function PATCH(
       action: 'update',
       entity: 'user',
       entityId: uid,
-      details: `Updated class assignments for ${user.name}`,
-      timestamp: new Date().toISOString(),
+      details: `Updated ${user.name}: ${user.role} → ${nextRole}`,
+      timestamp: now,
     })
 
     return NextResponse.json({ ok: true })
   } catch (err: any) {
-    console.error('Update user assignments failed:', err)
+    console.error('Update user failed:', err)
     return NextResponse.json(
       { ok: false, error: err?.message || 'Failed to update user assignments' },
       { status: 500 }

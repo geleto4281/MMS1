@@ -9,7 +9,7 @@ import {
   UserCredential
 } from 'firebase/auth'
 import { auth, db } from '@/lib/firebase/config'
-import { ref, get, update } from 'firebase/database'
+import { ref, get, onValue, update, type Unsubscribe } from 'firebase/database'
 import { User } from '@/types'
 
 interface LoginResult {
@@ -37,35 +37,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
+    let unsubscribeProfile: Unsubscribe | undefined
+    const unsubscribe = onAuthStateChanged(auth, (fbUser) => {
+      unsubscribeProfile?.()
+      unsubscribeProfile = undefined
       setFirebaseUser(fbUser)
+      setUser(null)
+      setLoading(true)
       
       if (fbUser) {
         // Let server-side middleware know the user is signed in (non-httpOnly defense-in-depth)
         document.cookie = 'khandaq_session=true; path=/; SameSite=Lax; Max-Age=86400'
-        // Fetch user data from Realtime Database
-        try {
-          const userRef = ref(db, 'users/' + fbUser.uid)
-          const snapshot = await get(userRef)
-          if (snapshot.exists()) {
-            const userData = snapshot.val() as Omit<User, 'uid'>
-            setUser({
-              uid: fbUser.uid,
-              ...userData,
-            })
+        const userRef = ref(db, 'users/' + fbUser.uid)
+        unsubscribeProfile = onValue(
+          userRef,
+          (snapshot) => {
+            if (snapshot.exists()) {
+              const userData = snapshot.val() as Omit<User, 'uid'>
+              setUser({ uid: fbUser.uid, ...userData })
+            } else {
+              setUser(null)
+            }
+            setLoading(false)
+          },
+          (error) => {
+            console.error('Error fetching user data:', error)
+            setUser(null)
+            setLoading(false)
           }
-        } catch (error) {
-          console.error('Error fetching user data:', error)
-        }
+        )
       } else {
         document.cookie = 'khandaq_session=; path=/; Max-Age=0'
         setUser(null)
+        setLoading(false)
       }
-      
-      setLoading(false)
     })
 
-    return () => unsubscribe()
+    return () => {
+      unsubscribe()
+      unsubscribeProfile?.()
+    }
   }, [])
 
   const login = async (email: string, password: string) => {

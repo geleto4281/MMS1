@@ -131,6 +131,26 @@ export interface FeeRecord {
   category?: 'MONTHLY_TUITION' | 'REGISTRATION' | 'BOOK_MATERIAL' | 'EXAM_FEE' | 'OTHER'
   paymentMethod?: 'CASH' | 'CBE' | 'TELEBIRR' | 'AWASH' | 'ABYSSINIA'
   receiptNumber?: string
+  sourceSubmissionId?: string
+}
+
+export interface FeePaymentSubmission {
+  id: string
+  studentId: string
+  parentId: string
+  parentName: string
+  amount: number
+  ethiopianYear: number
+  ethiopianMonth: number
+  paymentMethod: NonNullable<FeeRecord['paymentMethod']>
+  referenceNumber: string
+  note?: string
+  status: 'pending' | 'approving' | 'approved' | 'rejected'
+  createdAt: string
+  reviewedAt?: string
+  reviewedBy?: string
+  rejectionReason?: string
+  approvedFeeId?: string
 }
 
 export interface LeaveRequest {

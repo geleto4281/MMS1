@@ -75,9 +75,19 @@
       }
     },
     "fees": {
+      ".read": "root.child('users/' + auth.uid + '/role').val() === 'admin'",
       "$studentId": {
         ".read": "root.child('users/' + auth.uid + '/role').val() === 'admin' || (auth != null && root.child('parentStudentLinks/' + auth.uid + '/' + $studentId).val() === true)",
         ".write": "root.child('users/' + auth.uid + '/role').val() === 'admin'"
+      }
+    },
+    "feePaymentSubmissions": {
+      ".read": "root.child('users/' + auth.uid + '/role').val() === 'admin'",
+      "$studentId": {
+        ".read": "root.child('users/' + auth.uid + '/role').val() === 'admin' || (auth != null && root.child('parentStudentLinks/' + auth.uid + '/' + $studentId).val() === true)",
+        "$submissionId": {
+          ".write": "root.child('users/' + auth.uid + '/role').val() === 'admin' || (auth != null && root.child('parentStudentLinks/' + auth.uid + '/' + $studentId).val() === true && !data.exists() && newData.child('parentId').val() === auth.uid && newData.child('status').val() === 'pending')"
+        }
       }
     },
     "communicationBook": {
@@ -111,6 +121,9 @@
     "settings": {
       ".read": "root.child('users/' + auth.uid + '/role').val() === 'admin'",
       ".write": "root.child('users/' + auth.uid + '/role').val() === 'admin'",
+      "schoolName": {
+        ".read": "auth != null"
+      },
       "registrationOpen": {
         ".read": "auth != null",
         ".write": "root.child('users/' + auth.uid + '/role').val() === 'admin'"

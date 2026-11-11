@@ -34,8 +34,15 @@ export default function StudentsPage() {
   const [gender, setGender] = useState('')
   const [classId, setClassId] = useState('')
   const [parentPhone, setParentPhone] = useState('')
+  const [parentName, setParentName] = useState('')
   const [parentEmail, setParentEmail] = useState('')
+  const [parentRelationship, setParentRelationship] = useState('')
   const [alternativePhone, setAlternativePhone] = useState('')
+  const [address, setAddress] = useState('')
+  const [city, setCity] = useState('')
+  const [dateOfBirth, setDateOfBirth] = useState('')
+  const [admissionNumber, setAdmissionNumber] = useState('')
+  const [admissionDate, setAdmissionDate] = useState('')
   const [section, setSection] = useState('')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -340,8 +347,15 @@ export default function StudentsPage() {
     setParentLanguage('')
     setClassId('')
     setParentPhone('')
+    setParentName('')
     setParentEmail('')
+    setParentRelationship('')
     setAlternativePhone('')
+    setAddress('')
+    setCity('')
+    setDateOfBirth('')
+    setAdmissionNumber('')
+    setAdmissionDate('')
     setSection('')
     setEditingId(null)
   }
@@ -362,9 +376,16 @@ export default function StudentsPage() {
     setParentLanguage(s.parentLanguage || '')
     setClassId(s.classId)
     setParentPhone(s.parentPhone)
+    setParentName(s.parentName || '')
     setParentEmail(s.parentEmail || '')
+    setParentRelationship(s.parentRelationship || '')
     setAlternativePhone(s.alternativePhone || '')
     setSection(s.section || '')
+    setAddress(s.address || '')
+    setCity(s.city || '')
+    setDateOfBirth(s.dateOfBirth || '')
+    setAdmissionNumber(s.admissionNumber || '')
+    setAdmissionDate(s.admissionDate || '')
     setError('')
     setSuccess('')
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -415,15 +436,22 @@ export default function StudentsPage() {
       const data = {
         name,
         rollNumber: effectiveRoll,
-        gender: (gender as 'male' | 'female') || undefined,
-        age: age === '' ? undefined : age,
-        parentLanguage: (parentLanguage as 'Amharic' | 'Afaan Oromoo') || undefined,
+        gender: (gender as 'male' | 'female') || null,
+        age: age === '' ? null : age,
+        dateOfBirth,
+        admissionNumber,
+        admissionDate,
+        parentLanguage: (parentLanguage as 'Amharic' | 'Afaan Oromoo') || null,
         classId,
         className: cls?.name || '',
         section,
         parentPhone,
-        parentEmail: parentEmail.trim().toLowerCase() || undefined,
+        parentName,
+        parentEmail: parentEmail.trim().toLowerCase() || null,
+        parentRelationship,
         alternativePhone,
+        address,
+        city,
         updatedAt: new Date().toISOString(),
       }
       if (editingId) {
@@ -593,6 +621,18 @@ if (loading) {
                 />
               </div>
               <div className="space-y-2">
+                <Label htmlFor="dateOfBirth">Date of birth</Label>
+                <Input id="dateOfBirth" type="date" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="admissionNumber">Admission number</Label>
+                <Input id="admissionNumber" value={admissionNumber} onChange={(e) => setAdmissionNumber(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="admissionDate">Admission date</Label>
+                <Input id="admissionDate" type="date" value={admissionDate} onChange={(e) => setAdmissionDate(e.target.value)} />
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="parentLanguage">Parent Language</Label>
                 <select
                   id="parentLanguage"
@@ -646,8 +686,16 @@ if (loading) {
                 </div>
               </div>
               <div className="space-y-2">
+                <Label htmlFor="parentName">Parent / guardian name</Label>
+                <Input id="parentName" value={parentName} onChange={(e) => setParentName(e.target.value)} />
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="pEmail">Parent email (for portal access)</Label>
                 <Input id="pEmail" type="email" placeholder="parent@example.com" value={parentEmail} onChange={(e) => setParentEmail(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="parentRelationship">Parent relationship</Label>
+                <Input id="parentRelationship" placeholder="e.g. Mother, Father, Guardian" value={parentRelationship} onChange={(e) => setParentRelationship(e.target.value)} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="altPhone">Alternative Phone Number</Label>
@@ -662,6 +710,14 @@ if (loading) {
                     className="pl-10"
                   />
                 </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="address">Address</Label>
+                <Input id="address" value={address} onChange={(e) => setAddress(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="city">City / town</Label>
+                <Input id="city" value={city} onChange={(e) => setCity(e.target.value)} />
               </div>
             </div>
             <div className="space-y-2">

@@ -1,6 +1,6 @@
 import { auth, db } from '@/lib/firebase/config'
-import { ref, get, set, update, remove, onValue, query, orderByChild, equalTo, startAt, type QueryConstraint, type Unsubscribe } from 'firebase/database'
-import type { User, Class, Student, Attendance, AbsentAlert, MissingAttendanceAlert, Exam, Announcement, FeeRecord, MutabaahLog, MutabaahReply, LeaveRequest, ParentExamResult } from '@/types'
+import { ref, get, set, update, remove, onValue, query, orderByChild, equalTo, startAt, runTransaction, type QueryConstraint, type Unsubscribe } from 'firebase/database'
+import type { User, Class, Student, Attendance, AbsentAlert, MissingAttendanceAlert, Exam, Announcement, FeeRecord, FeePaymentSubmission, MutabaahLog, MutabaahReply, LeaveRequest, ParentExamResult } from '@/types'
 
 // ==================== Users ====================
 export async function getUser(userId: string): Promise<User | null> {
@@ -86,11 +86,17 @@ export async function getStudent(studentId: string): Promise<Student | null> {
   return snap.exists() ? (snap.val() as Student) : null
 }
 
-export async function createStudent(studentId: string, data: Partial<Student>): Promise<void> {
+export async function createStudent(
+  studentId: string,
+  data: Partial<{ [K in keyof Student]: Student[K] | null }>
+): Promise<void> {
   await set(ref(db, `students/${studentId}`), data)
 }
 
-export async function updateStudent(studentId: string, updates: Partial<Student>): Promise<void> {
+export async function updateStudent(
+  studentId: string,
+  updates: Partial<{ [K in keyof Student]: Student[K] | null }>
+): Promise<void> {
   await update(ref(db, `students/${studentId}`), updates)
 }
 
@@ -266,9 +272,88 @@ export async function getFeeRecords(studentId: string): Promise<FeeRecord[]> {
   return rows.sort((a, b) => b.date.localeCompare(a.date))
 }
 
+export function subscribeToFeeRecords(studentId: string, cb: (records: FeeRecord[]) => void): Unsubscribe {
+  return onValue(ref(db, `fees/${studentId}`), (snap) => {
+    const rows: FeeRecord[] = []
+    snap.forEach((child) => {
+      rows.push({ ...(child.val() as FeeRecord), id: child.key as string, studentId })
+    })
+    cb(rows.sort((a, b) => b.date.localeCompare(a.date)))
+  })
+}
+
 export async function createFeeRecord(studentId: string, data: Omit<FeeRecord, 'id'>): Promise<void> {
   const id = `fee_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
   await set(ref(db, `fees/${studentId}/${id}`), { ...data, id })
+}
+
+export async function getAllFeeRecords(): Promise<FeeRecord[]> {
+  const snap = await get(ref(db, 'fees'))
+  const rows: FeeRecord[] = []
+  snap.forEach((studentSnapshot) => {
+    studentSnapshot.forEach((recordSnapshot) => {
+      rows.push({
+        ...(recordSnapshot.val() as FeeRecord),
+        id: recordSnapshot.key as string,
+        studentId: studentSnapshot.key as string,
+      })
+    })
+  })
+  return rows
+}
+
+export async function createMonthlyFeeCharge(
+  studentId: string,
+  data: Omit<FeeRecord, 'id' | 'studentId'>
+): Promise<boolean> {
+  const id = `monthly_${data.ethiopianYear}_${data.ethiopianMonth}`
+  const record: FeeRecord = { ...data, id, studentId }
+  const result = await runTransaction(ref(db, `fees/${studentId}/${id}`), (existing) =>
+    existing === null ? record : undefined
+  )
+  return result.committed
+}
+
+export async function getFeePaymentSubmissions(studentId?: string): Promise<FeePaymentSubmission[]> {
+  const snap = await get(ref(db, studentId ? `feePaymentSubmissions/${studentId}` : 'feePaymentSubmissions'))
+  const rows: FeePaymentSubmission[] = []
+  if (studentId) {
+    snap.forEach((child) => {
+      rows.push({ ...(child.val() as FeePaymentSubmission), id: child.key as string, studentId })
+    })
+  } else {
+    snap.forEach((studentSnapshot) => {
+      studentSnapshot.forEach((child) => {
+        rows.push({
+          ...(child.val() as FeePaymentSubmission),
+          id: child.key as string,
+          studentId: studentSnapshot.key as string,
+        })
+      })
+    })
+  }
+  return rows.sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+}
+
+export function subscribeToFeePaymentSubmissions(
+  studentId: string,
+  cb: (submissions: FeePaymentSubmission[]) => void
+): Unsubscribe {
+  return onValue(ref(db, `feePaymentSubmissions/${studentId}`), (snap) => {
+    const rows: FeePaymentSubmission[] = []
+    snap.forEach((child) => {
+      rows.push({ ...(child.val() as FeePaymentSubmission), id: child.key as string, studentId })
+    })
+    cb(rows.sort((a, b) => b.createdAt.localeCompare(a.createdAt)))
+  })
+}
+
+export async function submitFeePayment(
+  studentId: string,
+  data: Omit<FeePaymentSubmission, 'id' | 'studentId'>
+): Promise<void> {
+  const id = `payment_notice_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+  await set(ref(db, `feePaymentSubmissions/${studentId}/${id}`), { ...data, id, studentId })
 }
 
 export type FeeLedgerStatus = 'CLEARED / PAID' | 'ADVANCE CREDIT' | 'PARTIAL' | 'UNPAID'
@@ -333,9 +418,19 @@ export async function getMutabaahLogs(studentId: string): Promise<MutabaahLog[]>
   return rows.sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt))
 }
 
+function omitUndefined(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(omitUndefined)
+  if (value !== null && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value).filter(([, item]) => item !== undefined).map(([key, item]) => [key, omitUndefined(item)])
+    )
+  }
+  return value
+}
+
 export async function createMutabaahLog(studentId: string, data: Omit<MutabaahLog, 'id'>): Promise<void> {
   const id = `mutabaah_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
-  await set(ref(db, `communicationBook/${studentId}/${id}`), { ...data, id })
+  await set(ref(db, `communicationBook/${studentId}/${id}`), omitUndefined({ ...data, id }))
 }
 
 export async function removeMutabaahVoiceNote(studentId: string, logId: string): Promise<void> {
@@ -452,6 +547,11 @@ export async function getSettings(): Promise<Record<string, string>> {
     })
   )
   return out
+}
+
+export async function getSchoolName(): Promise<string> {
+  const snap = await get(ref(db, 'settings/schoolName'))
+  return snap.exists() ? String(snap.val()) : ''
 }
 
 export async function getRegistrationOpen(): Promise<boolean> {
@@ -794,7 +894,13 @@ export const rtdb = {
   getParentExamResults,
   getParentStudentIds,
   getFeeRecords,
+  subscribeToFeeRecords,
+  getAllFeeRecords,
   createFeeRecord,
+  createMonthlyFeeCharge,
+  getFeePaymentSubmissions,
+  subscribeToFeePaymentSubmissions,
+  submitFeePayment,
   getMutabaahLogs,
   createMutabaahLog,
   removeMutabaahVoiceNote,
@@ -810,6 +916,7 @@ export const rtdb = {
   updateMissingAttendanceAlert,
   subscribeToMissingAttendanceAlerts,
   getSettings,
+  getSchoolName,
   getRegistrationOpen,
   updateSettings,
   subscribeToUsers,

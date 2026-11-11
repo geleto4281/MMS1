@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { User as UserIcon, Mail, Phone, Loader2, Plus, Shield, Search, Download, GraduationCap, Trash2, Pencil, X } from 'lucide-react'
 import { Pagination } from '@/components/Pagination'
-import type { User, Class } from '@/types'
+import type { User, UserRole, Class } from '@/types'
 import { useLiveData } from '@/lib/dataStore'
 import { exportToCsv, dateStamp } from '@/lib/exportCsv'
 
@@ -27,6 +27,11 @@ export default function TeachersPage() {
   const [selectedClasses, setSelectedClasses] = useState<string[]>([])
   const [editingTeacher, setEditingTeacher] = useState<User | null>(null)
   const [editingClassIds, setEditingClassIds] = useState<string[]>([])
+  const [editingUser, setEditingUser] = useState<User | null>(null)
+  const [editName, setEditName] = useState('')
+  const [editEmail, setEditEmail] = useState('')
+  const [editPhone, setEditPhone] = useState('')
+  const [editRole, setEditRole] = useState<UserRole>('teacher')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [saving, setSaving] = useState(false)
@@ -116,6 +121,52 @@ export default function TeachersPage() {
       await loadTeachers()
     } catch (err: any) {
       setError(err.message || 'Failed to update status')
+    }
+  }
+
+  const startProfileEdit = (account: User) => {
+    setEditingUser(account)
+    setEditName(account.name)
+    setEditEmail(account.email)
+    setEditPhone(account.phone || '')
+    setEditRole(account.role === 'admin' ? 'admin' : 'teacher')
+    setError('')
+    setSuccess('')
+  }
+
+  const handleProfileSave = async (event: React.FormEvent) => {
+    event.preventDefault()
+    if (!editingUser) return
+    setSaving(true)
+    setError('')
+    setSuccess('')
+    try {
+      const idToken = await auth.currentUser?.getIdToken()
+      if (!idToken) throw new Error('Your admin session has expired. Sign in again and retry.')
+      const res = await fetch(`/api/admin/users/${editingUser.uid}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({
+          profile: {
+            name: editName.trim(),
+            email: editEmail.trim().toLowerCase(),
+            phone: editPhone.trim(),
+            role: editingUser.role === 'parent' ? 'parent' : editRole,
+          },
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to update user')
+      setSuccess(`${editingUser.role === 'parent' ? 'Parent' : 'Staff'} account updated successfully.`)
+      setEditingUser(null)
+      await loadTeachers()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update user')
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -390,6 +441,14 @@ if (loading) {
                           <Button
                             variant="outline"
                             size="sm"
+                            onClick={() => startProfileEdit(t)}
+                            title="Edit account details and role"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
                             onClick={() => startAssignmentEdit(t)}
                             disabled={t.role !== 'teacher'}
                             title={t.role === 'teacher' ? 'Edit assigned classes' : 'Admins do not have class assignments'}
@@ -423,6 +482,70 @@ if (loading) {
           <Pagination page={page} totalPages={totalPages} totalItems={filtered.length} onPageChange={setPage} />
         </CardContent>
       </Card>
+
+      {editingUser && (
+        <div
+          className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 p-4"
+          onClick={() => setEditingUser(null)}
+        >
+          <Card className="w-full max-w-lg border-0 shadow-2xl" onClick={(event) => event.stopPropagation()}>
+            <CardHeader className="relative">
+              <button
+                type="button"
+                aria-label="Close"
+                className="absolute right-4 top-4 text-gray-400 transition hover:text-gray-600"
+                onClick={() => setEditingUser(null)}
+              >
+                <X className="h-5 w-5" />
+              </button>
+              <CardTitle>Edit account</CardTitle>
+              <CardDescription>Update the profile details for {editingUser.name}. Email changes also update their sign-in email.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form className="space-y-4" onSubmit={handleProfileSave}>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-user-name">Full name</Label>
+                  <Input id="edit-user-name" value={editName} onChange={(event) => setEditName(event.target.value)} required />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-user-email">Email</Label>
+                  <Input id="edit-user-email" type="email" value={editEmail} onChange={(event) => setEditEmail(event.target.value)} required />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-user-phone">Phone</Label>
+                  <Input id="edit-user-phone" type="tel" value={editPhone} onChange={(event) => setEditPhone(event.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-user-role">Role</Label>
+                  {editingUser.role === 'parent' ? (
+                    <Input id="edit-user-role" value="Parent (manage child links in Parents)" disabled />
+                  ) : (
+                    <select
+                      id="edit-user-role"
+                      value={editRole}
+                      onChange={(event) => setEditRole(event.target.value as UserRole)}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      <option value="teacher">Teacher</option>
+                      <option value="admin">Admin</option>
+                    </select>
+                  )}
+                  {editingUser.role !== 'parent' && (
+                    <p className="text-xs text-gray-500">Role changes take effect in open sessions immediately. The last active admin cannot be demoted.</p>
+                  )}
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button type="button" variant="outline" onClick={() => setEditingUser(null)}>Cancel</Button>
+                  <Button type="submit" disabled={saving}>
+                    {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Save account
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {editingTeacher && (
         <div
